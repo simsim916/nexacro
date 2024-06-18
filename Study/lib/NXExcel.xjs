@@ -1,0 +1,510 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Script type="xscript5.0"><![CDATA[/**
+ * 엑셀,한셀,CSV Export,Import를 지원한다.
+ * 1. 지원 버전
+ * 1.1 Microsoft Office
+ *   2003 이상 지원. (주의, Microsoft Office Starter 무료버전은 지원하지 않음)
+ * 1.2 한컴 오피스
+ *   2010 이상 지원.
+ * 1.3 CSV
+ *   엑셀,한셀이 설치되지 않은 PC에서 Text파일로 Save,Import를 지원한다.
+ *   
+ * @depend ExCommon
+ */
+
+/**
+ * NXExcel Object
+ * @param  formObj 폼 객체
+ * @return NXExcel
+ */
+NXExcel = function(formObj){
+	this._formObj 	= formObj;
+	this._expObj 	= new ExcelExportObject();
+	this._impObj	= new nexacro.ExcelImportObject("_excelImport" ,this._formObj);
+	this._exports	= [];	// Export 목록
+	this._imports	= [];	// Import 목록
+	this._csvcharset= "949";// utf-8로 저장하면 엑셀에서 CSV를 인식하지 못한다.
+	this._results	= [];	// 처리결과
+	
+	return this;
+}
+
+
+/**
+ * Grid 항목을 추가한다.
+ * <pre>
+ * 1. 파라메타
+ *   1) grdObj              : Export할 그리드 객체
+ *   2) arrExceptIdx        : Export에서 제외할 Grid Col 
+ *                            예제) [0,1]
+ *   3) options
+ *     ExportObject.addExportItem() 함수 파라메타를 참조한다.
+ *     - range              : Export 될 Target의 위치. 
+ *                            예제) 'Sheet1!A1'
+ *     - head               : Head,Summay를 출력 옵션
+ *       'allband',           Head,Summary 포함 (기본값)
+ *       'nohead',            Head 제외, Summary 포함
+ *       'nosumm',            Summary 제외, Head 포함
+ *       'nohead,nosumm',     Head,Summary 제외
+ *     - select             : Select의 출력방식
+ *       'allrecord',         모든 Record를 출력 (기본값)
+ *       'selectrecord',      Select된 Record만 출력
+ *     - merge              : Suppress의 출력방식
+ *       'suppress',          Grid Suppress 된 결과대로  1개만 출력 (기본값)
+ *       'merge',             Suppress된 Cell은 MergeCell로 출력
+ *       'nosuppress',        Suppress를 무시하고 각 Record에 모두 출력
+ *     - value              : value 출력방식
+ *       'allstyle',          Value, Style을 모두 출력 (기본값)
+ *       'selectstyle',       Value, Style을 모두 출력, Grid의 경우 Select Style도 출력
+ *       'onlyvalue',         Value만 출력, 기존 Excel의 Style 정보는 유지
+ *     - image              : Image를 Export할지 여부
+ *       'none',              Image를 출력하지 않음 (기본값)
+ *       'url',               Image Url을 Text로 출력함
+ *       'image',             Image를 출력함
+ *     - exceptstyle        : 제외되는 Style 옵션 ( ',' 로 복수개 나열가능)
+ *       '',                  모두 포함 (기본 값)
+ *       'color',             color는 export 되지 않음
+ *       'background',        background는 export되지 않음
+ *       'font',              font는 export 되지 않음
+ *       'align',             align은 export 되지 않음
+ *     - size               : Grid의 width,height설정을 엑셀에 그대로 적용할지 지정
+ *       'width',             width값만 동일하게 지정(column) (기본값)
+ *       'both',              width, height 둘다 동일하게 지정 
+ *       'height',            height값만 동일하게 지정(row)
+ *     - acceptstyle        : value='onlyvalue'일 때 'cellline'만 설정가능
+ * </pre>
+ * @param   grdObj       대상 그리드
+ * @param   arrExceptIdx 제외할 그리드 인덱스 배열
+ * @param   options      ExportObject.addExportItem 파라메타 속성
+ * @return  NXExcel
+ * @example
+ *      excel.addExportGrid(grdObj, [0], {range:'Sheet1!A1'});
+ */
+NXExcel.prototype.addExportGrid = function(grdObj, arrExceptIdx, options) {
+	options = NXCore.setDefaults(options, {range:'Sheet1!A1',  head:'allband'
+										 , select:'allrecord', merge:'suppress'
+										 , value:'allstyle',   image:'image'
+										 , exceptstyle:'',     size:'width'
+										 , acceptstyle:'cellline'} );
+	
+	var tempObj = this._createTempForGrid(grdObj, arrExceptIdx);
+	this._exports.push(tempObj);
+	//this._expObj.addExportItem(nexacro.ExportItemTypes.GRID, tempObj.grid
+	this._expObj.addExportItem(nexacro.ExportItemTypes.GRID, grdObj
+							, options.range,  options.head
+							, options.select, options.merge
+							, options.value,  options.image);
+	return this;
+}
+
+/**
+ * Dataset 항목을 추가한다.
+ * <pre>
+ * 1. 파라메타 
+ *   1) dsObj               : Export할 데이터셋 객체
+ *   2) arrExceptId         : Export에서 제외할 Col Id
+ *                            예제) ['CHK', 'CHK2']
+ *   3) options 
+ *      addExportGrid() 옵션을 참조한다.
+ * </pre>
+ * @param   dsObj       대상 데이터셋
+ * @param   arrExceptId 제외할 데이터셋 칼럼Id 배열
+ * @param   options     ExportObject.addExportItem 파라메타 속성
+ * @return  NXExcel
+ */
+NXExcel.prototype.addExportDataset = function(dsObj, arrExceptId, options) {
+	options = NXCore.setDefaults(options, {range:'Sheet1!A1',  head:'allband'
+										 , select:'allrecord', merge:'suppress'
+										 , value:'allstyle',   image:'none'
+										 , exceptstyle:'',     size:'width'
+										 , acceptstyle:'cellline'} );
+	
+	// 임시 그리드를 만들어서 Export한다.
+	var tempObj = this._createTempForDataset(dsObj, arrExceptId);
+	this._exports.push(tempObj);
+	this._expObj.addExportItem(nexacro.ExportItemTypes.GRID, tempObj.grid
+							, options.range,  options.head
+							, options.select, options.merge
+							, options.value, options.image);
+
+	return this;
+}
+
+/**
+ * Text 항목을 추가한다.
+ * <pre>
+ * 내부적으로 Grid 객체를 생성한다. 그러므로, 텍스트를 표시할 Cell(merge) 정보를 같이 전달해야한다.
+ * 
+ * 1. 파라메타 
+ *   1) strText         : Export할 텍스트
+ *   2) cells           : 텍스트를 표시할 옵션
+ *      - rowspan,        Cell rowspan (기본값, 1)
+ *      - colspan,        Cell rolspan (기본값, 1)
+ *      - align,          Cell align   (기본값, 'left, middle')
+ *      - color,          Cell color   ()
+ *      - font,           Cell font    ()
+ *   3) options 
+ *      addExportGrid() 옵션을 참조한다.
+ * </pre>
+ * @param   dsObj       대상 데이터셋
+ * @param   cells       텍스트를 표시할 Cell 정보 속성
+ * @param   options     ExportObject.addExportItem 파라메타 속성
+ * @return  NXExcel
+ */
+NXExcel.prototype.addExportText = function(strText, cells, options) {
+	cells	= NXCore.setDefaults(cells,   {rowspan:1, colspan:1, align:'left middle', color:'black'} );
+	
+	options = NXCore.setDefaults(options, {range:'Sheet1!A1',  head:'nohead,nosumm'
+										 , select:'allrecord', merge:'suppress'
+										 , value:'allstyle',   image:'none'
+										 , exceptstyle:'',     size:'width'
+										 , acceptstyle:'cellline'} );
+	
+	var tempObj = this._createTempForText(strText, cells);
+	this._exports.push(tempObj);
+	
+	this._expObj.addExportItem(nexacro.ExportItemTypes.GRID, tempObj.grid
+							, options.range,  options.head
+							, options.select, options.merge
+							, options.value, options.image);
+	return this;
+}
+
+/**
+ * Export(Save) 한다.
+ * <pre>
+ * Progress는 "ExportProgress>#progressbar" 스타일을 수정한다.
+ * 
+ * 1. 파라메타
+ *   1) options 
+ *     - activepagename             : 파일 내에서 활성화될 페이지를 지정하는 속성입니다. 엑셀 파일 형식의 경우에는 시트이름을 지정합니다
+ *     - exportactivemode           : 내보낸 파일을 바로 실행시킬지 여부를 지정하는 속성입니다.
+ *       'active',                    내보낸 파일을 바로 실행시킵니다 (기본값)
+ *       'noactive',                  내보낸 파일을 실행하지 않습니다
+ *     - exporteventtype            : onexport Event와 export ui 변화를 발생시키는 방식에 대하여 지정
+ *       'itemrecord',                ExportItem의 각 Record 단위로 Export가 완료되면 Event가 발생 (기본값)
+ *       'none',                      onexport Event를 발생하지 않습니다. export ui도 변경되지 않습니다.
+ *       'item',                      ExportItem 단위로 Export가 완료되면 Event가 발생
+ *       'totalrecord',               모든 ExportItem의 각 Record 단위로 Export가 완료되면 Event가 발생
+ *     - exportfilename             : Export 할 File을 지정하는 Property 입니다.
+ *     - exportmessagealert         : Export전 경고메세지로 출력될 문자열
+ *     - exportmessagecomplete      : Export 가 완료됬을때 출력될 문자열
+ *     - exportmessageprocess       : Export 진행도중 출력될 문자열
+ *                                    syntax : "%d Item, %d Recrod, %d Total"
+ *                                    예) "%d 항목을 출력중입니다. %d/%d"
+ *     - exportmessageready         : Export전 준비단계에서 출력될 문자열
+ *                                    예) "Export 준비중 입니다."
+ *     - exportopenmode             : Export File이 존재하거나, 존재하지 않는 경우 File Open 처리방식을 지정하는 Proeprty 입니다.
+ *       'noopen',                    File을 Open하지 않고 항상 새문서에 Export 합니다. (기본값)
+ *       'existopen',                 지정된 File이 존재하지 않는 경우 파일을 생성시키지 않고 새문서에 Export 합니다. 
+ *                                    지정된 File이 존재하는 경우 해당 파일을 Open하여 Export 합니다.
+ *       'overwrite',                 지정된 File이 존재하지 않는 경우 파일을 생성시키고 해당 file을 Open하여 Export 합니다.
+ *                                    지정된 File이 존재하는 경우에도 파일을 새로 생성시키고 해당 file을 Open하여 Export 합니다.
+ *     - exportpassword             : Export를 통해 Save가 될때 Password를 지정하는 Property 입니다.
+ *     - exportsavemode             : Export시 지정된 File로 Save 할지 여부를 지정하는 Property 입니다.
+ *       'nosave',                    Export File로 Save 하지 않습니다. (기본값)
+ *       'save',                      Export File로 Save 합니다. Excel의 경우, Excel File Format으로 Save 됩니다.
+ *     - exportsize                 : 엑셀로 Export시 exportsize 설정에 따라 그리드 셀의 넓이,폭 을 그대로 사용할지 설정하는 Property입니다.
+ *       'width',                     width(column)를 Grid와 동일하게 합니다. (기본값)
+ *       'height',                    height(row)를 Grid와 동일하게 합니다.
+ *       'both',                      width, height를 둘다 Grid와 동일하게 합니다.
+ *     - exporttype                 : ExportObject가 Export할 Target 매체를 지정합니다.
+ *       ExportTypes.EXCEL,           마이크로 소프트 엑셀 (기본값)
+ *       ExportTypes.HANCEL,          한컴 한셀
+ *     - exportuitype               : Export 실행시 UI를 사용하는 방식에 대해서 지정하는 Property 입니다.
+ *       'exportprogress',            ExportProgress라는 Inner Component를 사용하여 Export 진행상태를 출력 (기본값)
+ *       'none',                      UI를 사용하지 않습니다
+ *       'statusbar',                 소속 Frame의 StatusBar를 사용하여 Export 진행상태를 출력합니다.
+ * </pre>
+ * @param   options ExportObject의 Property 속성 
+ * @return  Boolean
+ * @example
+ *      1) Export 후 엑셀 실행
+ *          var arrExceptIdx = [0];
+ *          excel.addExportGrid(grdObj, arrExceptIdx, {range:'Sheet1!A1'});
+ *          excel.exportExcel( {activepagename:'Sheet1'} );
+ *
+ *      2) 엑셀 저장 (엑셀 실행 안함)
+ *          var arrExceptIdx = [0];
+ *          excel.addExportGrid(grdObj, arrExceptIdx, {range:'Sheet1!A1'});
+ *          var options = { exportsavemode:'save', exportactivemode:'noactive', exportfilename:'파일명' };
+ *          excel.exportExcel( options );
+ *      3) 엑셀 저장 후 엑셀 실행
+ *          var arrExceptIdx = [0];
+ *          excel.addExportGrid(grdObj, arrExceptIdx, {range:'Sheet1!A1'});
+ *          var options = {exportsavemode:'save', exportactivemode:'active', exportfilename:'파일명', activepagename: 'Sheet1'};
+ *          excel.exportExcel( options );
+ */
+NXExcel.prototype.exportExcel = function(options) {
+	options = NXCore.setDefaults(options, {activepagename  		: 'Sheet1'
+										, exportactivemode 		: 'active'
+										, exporteventtype  		: 'itemrecord'
+										, exportfilename        : ''
+										, exportmessagealert    : ''
+										, exportmessagecomplete : ''
+										, exportmessageprocess  : 'Export(%d) : %d/%d'
+										, exportmessageready 	: 'Export 준비중 입니다.'
+										, exportopenmode 		: 'noopen'
+										, exportpassword 		: ''
+										, exportsavemode 		: 'nosave'
+										, exportsize     		: 'width'
+										, exporttype     		: nexacro.ExportTypes.EXCEL
+										, exportuitype   		: 'exportprogress' } );
+
+	try {
+		//1) 저장시 경우 파일선택창을 실행한다.
+		var vfile = null;
+		
+		//3) Save or Export를 처리한다.
+		var nExportCount = 0;
+		var bCSVWrite    = false;
+		if( options.exporttype == nexacro.ExportTypes.EXCEL || options.exporttype == nexacro.ExportTypes.HANCEL ) {
+			
+			this._expObj.set_exporttype(options.exporttype);
+			this._expObj.set_exportuitype(options.exportuitype);
+			this._expObj.set_exporturl("http://"+application.gds_env.lookup("RUN_MODE", application.gv_runMode, "HOST_ADDR")+"/nexacro-xeni/XExportImport");
+			this._expObj.set_exportfilename("ExcelExport");
+			nExportCount = this._expObj.exportData();
+			
+		}
+		
+		this._results.push( {count:nExportCount} );
+		this.clear();
+		return true;
+	} catch(err) {
+		NXCore.alert(err.message);
+		this.clear();
+	}
+	return false;
+}
+
+
+/**
+ * Import 정보를 추가한다.
+ * <pre>
+ * 1. 파라메타
+ *   1) dsObj           : Imporr된 내용을 저장할 데이터셋
+ *   2) options         : Import 옵션 (Sheet정보)
+ *     - sheetindex     : Excel Sheet Index (기본값, 0)
+ *     - sheetname      : Excel Sheet Name  
+ *     - uselayout      : dsObj의 칼럼정보를 그대로 사용할지 여부
+ *       true,            dsObj의 칼럼정보를 그대로 사용한다. (기본값)
+ *       false,           dsObj의 칼럼정보를 삭제하고, 자동으로 칼럼('COL0001','string')을 생성한다.
+ *     - showexponent   : 숫자가 12자리 이상일 때 지수형으로 표현할지 여부
+ *       false,           지수형으로 표시하지 않는다. (기본값)
+ *       true,            지수형으로 표시한다.
+ *     - decimaldigit   : 소수점 자릿수를 지정한다. (기본값, 0)
+ *     - rowstart       : 엑셀 시트에서 시작 Row를 지정한다. (기본값, 1)
+ *     - checknum       : uselayout=true일 경우, 해당 셀의 값이 숫자가 아니면 경고창을 출력여부
+ *       false,           경고창을 출력 안함 (기본값)
+ *       true,            경고창을 출력
+ * </pre>
+ * @param dsObj   데이터셋 객체
+ * @param options Import 옵션
+ * @return {NXExcel}
+ */ 
+NXExcel.prototype.addImport = function(dsObj, options) {
+	options = NXCore.setDefaults(options,{importfilemode: "local", importSource: "", importRange: ""} );
+	options.dataset = dsObj;
+	this._imports.push(options);
+	return this;
+}
+
+/**
+ * 지정한 엑셀 파일을 Import한다.
+ * <pre>
+ * 1. 파라메타
+ *   1) options     : Import할 엑셀 파일 정보
+ * </pre>
+ * @param options 엑셀 파일 정보
+ * @return Boolean
+ * @example
+ *      var excel = new NXExcel(this);
+ *      excel.addImport(dsTemp, {sheetindex:0, rowstart:2, uselayout:true} );
+ *      if( excel.importExcel() ) {
+ *        NXCore.alert("e.message", "Import Complated.")
+ *      }
+ */
+NXExcel.prototype.importExcel = function(options) {
+
+	options = NXCore.setDefaults(options, {file:null});
+
+	this._impObj.set_importtype(nexacro.ImportTypes.EXCEL);
+	this._impObj.set_importurl("http://"+application.gds_env.lookup("RUN_MODE", application.gv_runMode, "HOST_ADDR")+"/nexacro-xeni/XExportImport");
+	
+	// this 객체 부정확함
+	this._impObj.addEventHandler("onsuccess", this.excelImport_onsuccess, this._formObj);
+	this._impObj.addEventHandler("onerror", this.excelImport_onerror, this._formObj);	
+	
+	this._impObj._results = [];
+	for(var i = 0; i < this._imports.length; i++) {
+		var args = this._imports[i];
+		
+		this._impObj.set_importfilemode(args.importfilemode);
+		//args.dataset.clearData();
+		
+		this._impObj.importData(args.importSource, "[command=getsheetdata;output=outDs;body="+args.importRange+"]", args.dataset.name+"=outDs");
+		//this._results.push({grid:(args.grid)});
+		this._impObj._results.push({grid:(args.grid)});
+	}
+	return true;
+}
+
+
+NXExcel.prototype.excelImport_onsuccess = function(obj:ExcelImportObject,  e:nexacro.ExcelImportEventInfo) {
+	for ( var i=0; i<obj._results.length; i++ ) {
+		obj._results[i].grid.createFormat();
+	}
+	
+}
+
+
+NXExcel.prototype.excelImport_onerror = function(obj:ExcelImportObject,  e:nexacro.ExcelImportErrorEventInfo) {
+	trace("error");
+}
+
+/**
+ * clear 한다.
+ */
+NXExcel.prototype.clear = function() {
+	// Export 정보를 클리어 한다.
+	while( this._exports.length > 0) {
+		var tempObj = this._exports.pop();
+		if( tempObj.dataset ) {
+			this._formObj.removeChild(tempObj.dataset.name);
+			tempObj.dataset.clear();
+		}
+		
+		this._formObj.removeChild(tempObj.grid.name);
+		tempObj.grid.destroy();
+	}
+	
+	this._expObj.clear();
+	this._exports 	= [];
+	this._imports 	= [];
+	this._results 	= [];
+}
+
+/**
+ * Export를 위한 임시 Grid를 생성한다.
+ * @param   grdObj       그리드
+ * @param   arrExceptIdx 제외할 그리드 인덱스
+ * @return  {Temporary Object}
+ */
+NXExcel.prototype._createTempForGrid = function(grdObj, arrExceptIdx) {
+	var tmpGridId   = NXCore.UID("_exportGrd");
+	var tmpGrid		= NXCore.find(tmpGridId, this._formObj);
+	if( tmpGrid == null ) {
+		tmpGrid = new Grid();
+		tmpGrid.init(tmpGridId, grdObj.position.left, grdObj.position.top, grdObj.position.width, grdObj.position.height);
+		this._formObj.addChild(tmpGrid.name, tmpGrid);
+		tmpGrid.show();
+		tmpGrid.set_visible(false);
+	}
+
+	//tmpGrid.set_binddataset(grdObj.binddataset);
+	tmpGrid.set_formats("<Formats>" + grdObj.getCurFormatString() + "</Formats>");
+	tmpGrid.setBindDataset(this._formObj.objects[grdObj.binddataset]);
+	if( NXCore.hasLength(arrExceptIdx) ) {
+		for(var i = arrExceptIdx.length-1; i >= 0; i--) {
+			tmpGrid.deleteContentsCol(arrExceptIdx[i]);
+		}
+	}
+	return {grid:tmpGrid, dataset:null};
+}
+
+/**
+ * Export를 위한 임시 Dataset 및 그리드를 생성한다.
+ * @param   dsObj       데이터 셋
+ * @param   arrExceptId 제외할 칼럼명
+ * @return  {Temporary Object}
+ */
+NXExcel.prototype._createTempForDataset = function(dsObj, arrExceptId) {
+	// 임시 데이터셋 생성
+	var returnObj	= {};
+	var tmpDs		= dsObj;
+	if( arrExceptId && arrExceptId.length > 0) {
+		var tmpDsId	= NXCore.UID("_exportDs");
+		tmpDs = NXCore.find(tmpDsId, this._formObj);
+		
+		if( tmpDs == null ) {
+			tmpDs = new Dataset();
+			tmpDs.set_name(tmpDsId);
+			this.formObj.addChild(tmpDs.name, tmpDs);
+		} else {
+			tmpDs.clear();
+		}
+		for(var i = 0; i < dsObj.colcount - dsObj.constcount; i++) {
+			var colInfo = dsObj.getColumnInfo(i);
+			if( arrExceptId && arrExceptId.indexOf(colInfo.name) >= 0) {
+				continue;
+			}
+			tmpDs.addColumnInfo(colInfo.name, colInfo);
+		}
+		NXCore.copySearchedRows(tmpDs, dsObj, "currow>=0");
+		returnObj['dataset'] = tmpDs;
+	}
+	
+	// 임시 그리드 생성
+	var tmpGridId   = NXCore.UID("_exportGrd");
+	var tmpGrid		= NXCore.find(tmpGridId, this._formObj);
+	if( tmpGrid == null ) {
+		tmpGrid = new Grid();
+		tmpGrid.init(tmpGridId, 1, 1, 1, 1);
+		tmpGrid.set_visible(false);
+		tmpGrid.set_selecttype('cell');
+		this._formObj.addChild(tmpGrid.name, tmpGrid);
+		tmpGrid.show();
+	}
+	tmpGrid.set_binddataset(tmpDs.name);
+	tmpGrid.createFormat();
+	
+	returnObj['grid'] = tmpGrid;
+	return returnObj;
+}
+
+/**
+ * Export를 위한 임시 Grid 및 Dataset을 생성한다.
+ * @param   strText     출력할 텍스트
+ * @param   cells       셀 옵션 
+ * @return  {Temporary Object}
+ */
+NXExcel.prototype._createTempForText = function(strText, cells) {
+	// 임시 데이터셋 구성
+	var tmpDsId	= NXCore.UID("_exportDs");
+	var tmpDs = new Dataset();
+	tmpDs.set_name(tmpDsId);
+	this._formObj.addChild(tmpDs.name, tmpDs);
+	
+	tmpDs.addColumn("COL0", "string");
+	tmpDs.addRow();
+	tmpDs.setColumn(tmpDs.rowposition, "COL0", strText);
+	
+	// 임시 그리드 생성
+	var tmpGridId   = NXCore.UID("_exportGrd");
+	var tmpGrid		= NXCore.find(tmpGridId, this._formObj);
+	if( tmpGrid == null ) {
+		tmpGrid = new Grid();
+		tmpGrid.init(tmpGridId, 1, 1, 1, 1);
+		tmpGrid.set_visible(false);
+		tmpGrid.set_selecttype('cell');
+		this._formObj.addChild(tmpGrid.name, tmpGrid);
+		tmpGrid.show();
+	}
+	tmpGrid.set_formats("<Formats></Formats>");
+	tmpGrid.set_binddataset(tmpDs.name);
+	
+	tmpGrid.appendContentsRow('head');	// head가 없으면 exportvalue='onlyvalue'가 동작하지 않는다..
+	for(var i = 0; i < cells.rowspan; i++) {
+		tmpGrid.appendContentsRow('body');
+	}
+	for(var i = 0; i < cells.colspan-1; i++) {
+		tmpGrid.appendContentsCol('body');
+	}
+	tmpGrid.mergeContentsCell('body', 0, 0, cells.rowspan-1, cells.colspan-1, 0, false);
+	tmpGrid.setCellProperty("body", 0, "text", 	 "expr:COL0");
+	tmpGrid.setCellProperty("body", 0, "align",  cells.align);
+	tmpGrid.setCellProperty("body", 0, "color",  cells.color);
+	tmpGrid.setCellProperty("body", 0, "font",   cells.font);
+	return {grid:tmpGrid, dataset:tmpDs};
+}		]]></Script>

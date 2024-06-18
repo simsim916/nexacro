@@ -4,8 +4,19 @@
   <GlobalVariables url="globalvars.xml"/>
   <Application id="Study" codepage="utf-8" language="Korean" loginformurl="" loginformstyle="" windowopeneffect="" windowcloseeffect="" version="" tracemode="none" themeid="default.xtheme">
     <Layout>
-      <MainFrame id="mainframe" title="maintitle" defaultfont="" resizable="true" showtitlebar="true" showstatusbar="true" left="0" top="0" width="800" height="800">
-        <ChildFrame id="childframe" formurl="" showtitlebar="false" showstatusbar="false" openeffect="" closeeffect=""/>
+      <MainFrame id="mainframe" title="maintitle" defaultfont="" resizable="true" showtitlebar="true" showstatusbar="true" left="0" top="0" width="1200" height="800">
+        <VFrameSet id="VFrameSet0" separatesize="230,500,70">
+          <Frames>
+            <ChildFrame id="Bottom_frame" style="overlaycolor:#444444ff;background:wheat;color:#444444ff;" formurl="Work::Emp.xfdl"/>
+            <HFrameSet id="HFrameSet0">
+              <Frames>
+                <ChildFrame id="Center_left_frame" style="overlaycolor:#444444ff;background:cornflowerblue;color:#444444ff;"/>
+                <ChildFrame id="Center_Right_frame" style="overlaycolor:#444444ff;background:darkslategray;color:#444444ff;"/>
+              </Frames>
+            </HFrameSet>
+            <ChildFrame id="Top_frame2" style="overlaycolor:#444444ff;background:chocolate;color:#444444ff;"/>
+          </Frames>
+        </VFrameSet>
       </MainFrame>
     </Layout>
     <ScreenInfo/>

@@ -5,6 +5,9 @@
     <Module url="ComComp.json"/>
     <Module url="Grid.json"/>
     <Module url="DeviceAPI.json"/>
+    <Module url="EcoLibrary.json"/>
+    <Module url="ExtComp.json"/>
+    <Module url="UbiViewer.json"/>
   </Modules>
   <Components>
     <Component type="JavaScript" id="Div" classname="nexacro.Div"/>
@@ -34,6 +37,8 @@
   <Services>
     <Service prefixid="Base" type="form" url="./Base/" version="0" communicationversion="0"/>
     <Service prefixid="Work" type="form" url="./Work/" communicationversion="0"/>
+    <Service prefixid="lib" type="js" url="./lib/" communicationversion="0"/>
+    <Service prefixid="Bottom" type="form" url="./Bottom/" communicationversion="0"/>
   </Services>
   <Update/>
 </TypeDefinition>

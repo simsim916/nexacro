@@ -1,0 +1,253 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Script type="xscript5.0"><![CDATA[/**
+ * @fileOverview Map Object를 정의한다.
+ * (key,value를 담을 수 있는 Map을 구현한다)
+ * <pre>
+ * 1. Object
+ * 		NXMap
+ * 
+ * 2. 사용예
+ *		NXMap map = new NXMap();
+ * 		map.put("obj", grdObj);
+ * 		map.put("str", "Hello World!");
+ * 		map.clear();
+ * </pre>
+ * @author tobe
+ */
+
+/**
+ * NXMap Object
+ * @param  objMap
+ * @return NXMap
+ */
+NXMap = function(objMap){
+	this._data = [];
+	this.putAll(objMap);
+	return this;
+}
+
+/**
+ * Key,Value를 설정한다.
+ * @param  key 키
+ * @param  value 값
+ * @return NXMap
+ */
+NXMap.prototype.put = function(key, value) {
+	if( NXCore.isEmpty(key) ) return this;
+	this._data[key] = NXCore.empty(value);
+	return this;
+}
+/**
+ * Map의 모든 Element를 추가한다.
+ * @param  objMap 추가할 맵
+ * @return NXMap
+ */
+NXMap.prototype.putAll = function(objMap) {
+	if( NXCore.hasLength(objMap) ) {
+		for(var p in objMap._data) {
+			this._data[p] = objMap._data[p];
+		}
+	}
+	return this;
+}
+
+/**
+ * Value를 반환한다.
+ * @param  key 키
+ * @param  defaultValue 값
+ * @return Object
+ */
+NXMap.prototype.get = function(key, defaultValue) { 
+	return NXCore.empty(this._data[key], defaultValue);
+}
+/**
+ * Key가 존재하는지 체크한다.
+ * @param  key 키
+ * @return Boolean
+ */
+NXMap.prototype.containsKey = function(key){
+	return key in this._data;
+}
+/**
+ * Value가 존재하는지 체크한다.
+ * @param  value 값
+ * @return Boolean
+ */
+NXMap.prototype.containsValue = function(value){
+	for(var p in this._data) {
+		if(this._data[p] == value) return true;
+	}
+	return false;
+}
+/**
+ * 빈 맵인지 체크한다.
+ * @return  {Boolean}
+ */
+NXMap.prototype.isEmpty = function() {
+	return (this.size() == 0);
+}
+/**
+ * 모두 삭제한다.
+ * @return  {NXMap}
+ */
+NXMap.prototype.clear = function(){   
+	for(var p in this._data){
+		delete this._data[p];
+	}
+	return this;
+}
+/**
+ * Key와 일치하는 항목을 제거한다.
+ * @param  key key to remove
+ * @return NXMap
+ */
+NXMap.prototype.remove = function(key) {
+	delete this._data[key];
+	return this;
+}
+/**
+ * Key를 반환한다.
+ * @return  {Array}
+ */
+NXMap.prototype.keys = function() { 
+	var keys = new Array();   
+	for(var p in this._data){   
+		keys.push(p);
+	}
+	return keys;
+}
+
+/**
+ * Value를 반환한다.
+ * @return  {Array}
+ */
+NXMap.prototype.values = function(){ 
+	var values = new Array();   
+	for(var p in this._data){   
+		values.push(this._data[p]);
+	}  
+	return values;
+}
+/**
+ * 항목 갯수를 반환한다.
+ * @return  Number
+ */
+NXMap.prototype.size = function() {
+	var count = 0;
+	for (var p in this._data) count++;
+	return count;
+}
+
+/**
+ * 트랜잭션에서 사용되는 Arguments 포맷으로 변환한다.
+ * <pre>
+ * 트랜잭션에서 사용되는 String Arguments 포맷으로 변환한다.
+ * e.g) "key=value key2=value2"
+ * </pre>
+ * @return  String
+ */
+NXMap.prototype.toArguments = function() {
+	var strArguments = "";
+	var arrKey = this.keys();
+	for(var i = 0; i < arrKey.length; i++) {
+		strArguments += arrKey[i] + "=" + wrapQuote(NXCore.empty(this._data[arrKey[i]])) + " ";
+	}
+	return strArguments;
+}
+
+/**
+ * 트랜잭션에서 사용되는 Arguments를 Map으로 변환한다.
+ * @param strArguments 트랜잭션에서 사용되는 Arguments 문자열
+ * @return NXMap
+ */
+NXMap.parseArguments = function(strArguments) {
+	strArguments = NXCore.empty(strArguments);
+	
+	var newMap 	= new NXMap();
+	var nLen	= strArguments.length;
+	for(var i = 0; i < nLen; i++) {
+		//1. find 'key' to '='
+		var nStart = i
+		for(; i < nLen; i++ ) {
+			if( strArguments.charAt(i) == '=') {
+				break;
+			}
+		}
+		var strKey = strArguments.substr(nStart, i-nStart).trim();
+		//2. skip space. start with 'next ='
+		for( i++; i < nLen; i++ ) {
+			if( !isSpace(strArguments.charAt(i)) ) break;
+		}
+		//3. find 'value'. start with QUOTE or Character
+		var bInQuote = false;
+		for( nStart = i ; i < nLen; i++ ) {
+			if( strArguments.charAt(i) == '\"' || strArguments.charAt(i) == '\'') {
+				if( bInQuote ) {
+					if( strArguments.charAt(nStart) == strArguments.charAt(i) ) {
+						// quote는 시작과 끝이 같은 문자로 이루어져야한다.
+						i++;
+						break;
+					}
+				} else {
+					bInQuote = true;
+				}
+			} else if(strArguments.charAt(i) == '\\') {
+				// \ 문자인 경우는, 다음 문자를 Skip.
+				i++;
+			} else if( !bInQuote && isSpace(strArguments.charAt(i)) ) {
+				break;
+			} 
+		}
+		var strValue = stripQuote(strArguments.substr(nStart, i - nStart));
+		if( NXCore.hasLength(strKey) ) {
+			newMap.put(strKey, strValue);
+		}
+	}
+	return newMap;
+}
+
+/**
+ * Dataset을 Array of Map로 변환해서 반환한다.
+ * @param dsObj {required} 데이터셋
+ * @param strENXr {required} 데이터셋 검색식
+ * @return Array of Map || Empty Array
+ */
+NXMap.datasetToMaps = function(dsObj, strENXr) {
+	var arrMaps = new Array();
+    
+	var arrCol = new Array();
+    for(var i = 0; i < dsObj.colcount - dsObj.constcount; i++) {
+        var colInfo = dsObj.getColumnInfo(i);
+        arrCol.push(colInfo.name);
+    }
+
+    var arrRow = NXCore.searchedRows(dsObj, strENXr);
+    for(var i = 0; i < arrRow.length; i++) {
+        var map = new NXMap();
+        for(var c = 0; c < arrCol.length; c++) {
+            map.put(arrCol[c], dsObj.getColumn(arrRow[i], arrCol[c]) );
+        }
+        arrMaps.push(map);
+    }
+    return arrMaps;
+}
+
+/**
+ * Dataset을 Map로 변환해서 반환한다.
+ * @param dsObj 데이터셋
+ * @param nRow  Row Num
+ * @return Map 
+ */
+NXMap.datasetToMap = function(dsObj, nRow) {
+	var arrCol = new Array();
+    for(var i = 0; i < dsObj.colcount - dsObj.constcount; i++) {
+        var colInfo = dsObj.getColumnInfo(i);
+        arrCol.push(colInfo.name);
+    }
+
+	var map = new NXMap();
+	for(var c = 0; c < arrCol.length; c++) {
+		map.put(arrCol[c], dsObj.getColumn(nRow, arrCol[c]) );
+	}
+    return map;
+}]]></Script>

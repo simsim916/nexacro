@@ -1,0 +1,1764 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Script type="xscript5.0"><![CDATA[
+/** 
+ * 시스템 전체적으로 사용되는 Static Object를 정의한다.
+ * <pre>
+ * NXCore
+ * NXLogger
+ * String.prototype
+ * Array.prototype
+ * 
+ * @depend gds_env
+ * @authr tobe
+ */
+
+/**
+ * NXCore Object
+ */
+NXCore = function() {
+}
+
+/**
+ * 스크립트를 include한 폼 객체
+ */
+NXCore.THISFORM			= this;
+
+/**
+ * 기본 문자셋
+ * <pre>
+ * lengthb()에서 "utf-8"인 경우 한글은 3bytes로 처리한다.
+ * </pre>
+ */
+NXCore.DEFAULT_CHARSET 	= "utf-8";
+
+/**
+ * 데이터 셋의 ROWTYPE을 수동으로 관리할 때 사용된다.
+ */
+NXCore.ROWTYPE			= "ROWTYPE";
+NXCore.ROWTYPE_N		= "N";
+NXCore.ROWTYPE_I		= "I";
+NXCore.ROWTYPE_U		= "U";
+NXCore.ROWTYPE_D		= "D";
+
+/**
+ * Char from KeyCode
+ */
+NXCore.CRLF				= 	String.fromCharCode(13,10);
+NXCore.CR				= 	String.fromCharCode(13);
+NXCore.LF				= 	String.fromCharCode(10);
+NXCore.TAB				= 	String.fromCharCode(9);
+NXCore.COMMA			= 	",";
+
+/**
+ * Virtual KeyCode
+ */
+NXCore.VK_BACKSPACE		= 8;
+NXCore.VK_ENTER			= 13;
+NXCore.VK_ESC			= 27;
+NXCore.VK_END 			= 35
+NXCore.VK_HOME			= 36
+NXCore.VK_LEFT			= 37;
+NXCore.VK_UP			= 38;
+NXCore.VK_RIGHT			= 39;
+NXCore.VK_DOWN			= 40;
+NXCore.VK_DELETE		= 46;
+NXCore.VK_B				= 66;
+NXCore.VK_C				= 67;
+NXCore.VK_E				= 69;
+NXCore.VK_H				= 72;
+NXCore.VK_O				= 79;
+NXCore.VK_U				= 85;
+NXCore.VK_V				= 86;
+NXCore.VK_W				= 87;
+NXCore.VK_Z				= 90;
+NXCore.VK_F1			= 112;
+NXCore.VK_F2			= 113;
+NXCore.VK_F3			= 114;
+NXCore.VK_F4			= 115;
+NXCore.VK_F5			= 116;
+NXCore.VK_F6			= 117;
+NXCore.VK_F7			= 118;
+NXCore.VK_F8			= 119;
+NXCore.VK_F9			= 120;
+NXCore.VK_F10			= 121;
+NXCore.VK_F11			= 122;
+NXCore.VK_F12			= 123;
+NXCore.VK_TILD			= 192;
+
+/**
+ * 프로젝트 타입에 대한 상수를 정의한다.
+ * 1. application onload에서 사용할 타입들을 지정한다.
+ *    - application.addVariable("gv_support", "RUNTIME,MDI,WA");
+ *    - 참조는 NXCore.isSupport() 함수를 사용한다.
+ */
+NXCore.RUNTIME	= "RUNTIME";	
+NXCore.EMBED	= "EMBED";	
+NXCore.MDI		= "MDI";	
+
+/**
+ * null or undefined or zero-length 인지 체크한다.
+ * @param  objValue 체크할 값
+ * @return Boolean
+ * @example 
+ *   if( NXCore.isEmpty(obj) ) { }
+ */
+NXCore.isEmpty = function(objValue) {
+	if( objValue == undefined || objValue == null || objValue.toString() == '' ) {
+		return true;
+	} else {
+		return (new String(objValue)).length == 0;	
+	}
+}
+
+/**
+ * isEmpty()가 아닌지 체크한다.
+ * @param   objValue 체크할 값
+ * @return  Boolean
+ */
+NXCore.hasLength = function(objValue) {
+	return !NXCore.isEmpty(objValue);
+}
+
+/**
+ * isEmpty()인 경우 defaultValue로 지정한 값을 반환한다.
+ * @param   objValue 체크할 값
+ * @param   defaultValue 기본 값
+ * @return  Object
+ */
+NXCore.empty = function(objValue, defaultValue) {
+	if( NXCore.isEmpty(objValue) ) {
+		return NXCore.isEmpty(defaultValue) ? "" : defaultValue;
+	} else {
+		return objValue;
+	}
+}
+
+/**
+ * 객체의 타입을 문자열로 반환한다.
+ * <pre>
+ * dataType : 'number', 'string', 'boolean', 'function', 'undefined', 'null', 'object' (객체의 명칭을 재 추출)
+ * object   : 'dataset', 'button', 'grid'... 
+ * 주의) null은 javascript에서는 'object'로 처리되지만 여기서는 'null' 타입으로 처리한다.
+ * </pre>
+ * @param   obj 객체
+ * @return  lower name of typename
+ * @example
+ *   NXCore.typeof(grdOut)      => "grid"
+ *   NXCore.typeof(1)           => "number"
+ *   NXCore.typeof(null)        => "null"
+ *   NXCore.typeof(undefined)   => "undefined"
+ */
+NXCore.typeof = function(obj) {
+	if( obj === null ) {return 'null'; }
+	var typename = typeof(obj);
+	if( typename === "object") {
+		if( obj instanceof Array) {
+			typename = "array";
+		} else if( obj instanceof Date) {
+			typename = "date"
+		} else {
+			var tmp = new String(obj);
+			var start = tmp.indexOf("[object ");	// [object Grid]
+			var end   = tmp.indexOf("]", start);	
+			if( start > -1 && end > -1) {
+				typename = tmp.substr(8, end-8);
+			}
+		}
+	}
+	return typename.toLowerCase();
+}
+
+
+/**
+ * 폼에서 Component(Object)를 찾는다.
+ * <pre>
+ * 1. 설명
+ *   Visible/Invisible object를 찾는다. 
+ * 2. 파라메타
+ *   1) bFindParent : 상위 폼에서도 검색할지 여부
+ *     true,        : 지정한 폼의 parent에서도 찾는다. (기본값)
+ *     false,       : 지정한 폼에서만 찾는다.
+ * </pre>
+ * @param   strPath 객체 ID or Path
+ * @param   formObj 객체를 찾을 폼 객체
+ * @param   bFindParent 폼 객체의 상위 폼에서도 찾을지 여부
+ * @return  null or Object
+ *
+ * @example
+ *      var strPath = NXCore.path(edtNAME, this);
+ *      var obj     = NXCore.find(strPath, this);
+ */
+NXCore.find = function(strPath, formObj, bFindParent) {
+	bFindParent = NXCore.empty(bFindParent, true);
+	var returnObj = null;
+	try {
+		var arrPath = strPath.split(".");
+		while( NXCore.typeof(formObj) != "childframe" ) {
+			var checkForm = formObj;
+			for(var i = 0; i < arrPath.length; i++) {
+				var obj = null;
+				if( NXCore.typeof(checkForm) == "tab") {	// tab->tabpage 객체를 바로 참조한다. (tab에는 컴포넌트가 없다.)
+					for(var j = 0; j < checkForm.tabpages.length; j++) {
+						if( checkForm.tabpages[j].name == arrPath[i] ) {
+							obj = checkForm.tabpages[j];
+							break;
+						}
+					}
+				} else {
+					obj = checkForm.all[arrPath[i]];
+				}
+				if( obj == null ) break;
+				
+				// 전체 이름이 일치하는 경우
+				if( i == arrPath.length-1 ) {
+					returnObj = obj;
+					break;
+				}
+				checkForm = obj;
+			}
+			if( bFindParent && returnObj == null ) {
+				formObj = formObj.parent;
+			} else {
+				break;
+			}
+		}
+	} catch(err) {}
+	return returnObj;
+}
+
+/**
+ * 문자열에서 포맷된 부분를 파라메타로 치환한다.
+ * @return  변환된 문자열
+ *
+ * @example
+ *      trace( NXCore.format("Hello {0}!",     "tobe")); -> "Hello tobe!"
+ *      trace( NXCore.format("Hello {0}!{1}!", "tobe")); -> "Hello tobe!!"
+ *      trace( NXCore.format("{} Hello {}!",   "tobe")); -> "tobe Hello !"
+ */
+NXCore.format = function() {
+	var values = new Array();
+	for(var i = 0; i < arguments.length; i++) {
+		
+		if( arguments[i] instanceof Array ) {
+			for(var j = 0; j < arguments[i].length; j++ ) 
+				values.push(arguments[i][j]);
+		} else {
+			values.push(arguments[i]);
+		}
+	}
+	
+	var strFormat = new String(values.shift());
+	var arrFormat = strFormat.splitEmpty("{}");
+	if( arrFormat.length > 1) {
+		strFormat = "";
+		for(var i = 0; i < arrFormat.length; i++) {
+			strFormat += arrFormat[i] + (i < values.length ? values[i] : "");
+		}
+	} else {	
+		for(var i = 0; i < values.length; i++){
+			strFormat = strFormat.replace("\{" + i + "\}", values[i]);
+		}
+	}
+	// 치환되지 않은 포맷이 있으면 빈 값으로 치환한다.
+	strFormat = strFormat.replace(/\{[0-9]*\}/g, "");
+	return strFormat;
+}
+
+/**
+ * 문자열의 바이트 길이를 반환한다.
+ * <pre>
+ * 한글의 경우 "utf-8"로 인코딩되면 3 bytes로 처리한다.
+ * </pre>
+ * @param   strValue   체크할 문자열
+ * @param   strCharset 인코딩 [default, NXCore.DEFAULT_CHARSET]
+ * @return  Number
+ *
+ * @example
+ */
+NXCore.byteLength = function(strValue, strCharset) {
+	strCharset = NXCore.empty(strCharset, NXCore.DEFAULT_CHARSET).toLowerCase();
+	var nHanSize = ("utf-8" == strCharset ? 3 : 2);
+	var nTotal = 0;
+	for(var i = 0; i < strValue.length; i++) {
+		nTotal += strValue.charCodeAt(i) > 127 ? nHanSize : 1;
+	}
+	return nTotal;
+}
+
+/**
+ * 문자열에서 nByte만큼 잘라서 반환한다.
+ * <pre>
+ * 1. 설명
+ *   문자열에서 지정한 바이트만큼 잘라서 반환한다.
+ * 2. 파라메타
+ * </pre>
+ * @param strValue  문자열
+ * @param nByteLen  바이트 길이
+ * @param strAppend 추가할 문자열
+ * @example
+ *    NXCore.getNBytes("안녕하세요", 4, "..."); --> "안녕..."
+ *    NXCore.getNBytes("안녕하세요", 5, "..."); --> "안녕..."
+ */
+NXCore.cutBytes = function(strValue, nByte, strAppend) {
+	strValue = NXCore.empty(strValue);
+	var nTotal = 0;
+	for (var i = 0; i < strValue.length; i++) {
+			nTotal += (strValue.charCodeAt(i) > 128) ? 2 : 1;
+			if (nTotal > nByte) return strValue.substring(0,i) + NXCore.empty(strAppend);
+	}
+	return strValue;
+}
+
+
+/**
+ * opener 폼 객체를 반환한다.
+ * <pre>
+ *   1. opener 속성은 Main-Form의 속성에 설정된다.
+ *     Sub-Form(div,tabpage)에서는 this.opener 형태로 값을 잠조할 수 없다.
+ *     동일한 방법으로 opener를 참조할 수 있도록 함수를 제공한다.
+ *   2. div에서 popup 뛰운 경우 opener는 div 폼을 지칭한다.
+ * </pre>
+ * @param   formObj 폼 객체
+ * @return  null or Form
+ *
+ * @example
+ *   NXCore.opener(obj).all -> opener form의 모든 객체
+ *   NXCore.opener(obj).getOwnerFrame().form.all -> opener frame form의 모든 객체
+ */
+NXCore.opener = function(formObj) {
+	return formObj.getOwnerFrame().form.opener;
+}
+
+/**
+ * MDI 폼인지 체크한다.
+ * @param   formObj form object
+ * @return  Boolean
+ *
+ */
+NXCore.isMDIForm = function(formObj) {
+	return NXCore.isEmpty(NXCore.opener(formObj) && (formObj.name).indexOf("COM") != 0 && (formObj.name).indexOf("FRM") != 0);
+}
+
+/**
+ * POPUP 폼인지 체크한다.
+ * @param   formObj form object
+ * @return  Boolean
+ *
+ */
+NXCore.isPopupForm = function(formObj) {
+	return NXCore.hasLength(NXCore.opener(formObj));
+}
+
+/**
+ * MAIN 폼인지 체크한다.
+ * @param   formObj form object
+ * @return  Boolean
+ *
+ */
+NXCore.isMainForm = function(formObj) {
+	return "form" == NXCore.typeof(formObj);
+}
+
+/**
+ * FRAME Form인지 체크한다. 
+ * <pre>
+ * application script에서 등록된 frames에 대해서 체크한다.
+ * </pre>
+ * @return formObj {required} form object
+ * @return boolean
+ */
+NXCore.isFrameForm = function(formObj) {
+	var frameName = formObj.getOwnerFrame().name;
+	return NXCore.hasLength(NXCore.getArgument(application, frameName));
+}
+
+/**
+ * ADL에 구성된 FrameSet 객체를 반환한다.
+ * <pre>
+ * application script에서 등록된 frames에 대해서 체크한다.
+ * </pre>
+ * @param frameName {required} 프레임셋 명
+ * @return undefined or FrameSet
+ */
+NXCore.getFrame = function(frameName) {
+	return NXCore.getArgument(application, frameName);
+}
+
+/**
+ * 폼(팝업)에 전달된 파라메타 키 목록을 반환한다.
+ * <pre>
+ * ChildFrame에 설정된 파라메타를 사용한다.
+ * </pre>
+ * @param formObj 폼 객체
+ * @return Array of String
+ * @example
+ *   var arrKey = NXCore.getParameterKeys(this);
+ */
+NXCore.getParameterKeys = function(formObj) {
+	return NXCore.getArgumentKeys(formObj.getOwnerFrame());
+}
+
+/**
+ * 폼(팝업)에 전달된 파라메타 값을 반환한다.
+ * <pre>
+ * ChildFrame에 설정된 파라메타를 사용한다.
+ * </pre>
+ * @param formObj 폼 객체
+ * @param strKey  키
+ * @return String
+ * @example
+ *   NXCore.getParameter(this, "pv_key");
+ */
+NXCore.getParameter = function(formObj, strKey) {
+    var vs_arg = NXCore.getArgument(formObj.getOwnerFrame(), strKey);
+    if (vs_arg != null) return vs_arg;
+    
+    return eval("formObj.getOwnerFrame()." + strKey);
+    
+//     if ((eval("formObj.getOwnerFrame()." + strKey)) == null)
+//  	   return NXCore.getArgument(formObj.getOwnerFrame(), strKey);
+//  	else {  
+// 		return eval("formObj.getOwnerFrame()." + strKey);
+//  	}
+}
+/**
+ * 폼(팝업)에 파라메타를 반환한다.
+ * <pre>
+ * ChildFrame에 설정된 파라메타를 사용한다.
+ * </pre>
+ * @param formObj  폼 객체
+ * @param strKey   키
+ * @param varValue 값
+ * @example
+ *   NXCore.setParameter(this, "pv_key", "문자열");
+ */
+NXCore.setParameter = function(formObj, strKey, varValue) {
+	NXCore.setArgument(formObj.getOwnerFrame(), strKey, varValue);
+}
+
+/**
+ * Object.uarguments에 저장된 값을 반환한다.
+ * <pre>
+ *   Object의 uarguments 속성을 추가해서 필요한 정보를 관리한다.
+ * </pre>
+ * @param   obj object
+ * @param   strKey key to get
+ *
+ */
+NXCore.getArgument = function(obj, strKey) {
+	try {
+		return obj.uarguments[strKey];
+	} catch(err) {}	
+	return undefined;
+}
+
+/**
+ * Object.uarguments에 저장된 값을 제거하고 값을 반환한다.
+ * @param  obj object
+ * @param  strKey key to get
+ * @return Object
+ */
+NXCore.removeArgument = function(obj, strKey) {
+	try {
+		var result = obj.uarguments[strKey];
+		delete obj.uarguments[strKey];
+		return result;
+	} catch(err) {}	
+	return null;
+}
+
+/**
+ * Object.uarguments에 objectArgument를 설정한다.
+ * @param   obj object to set
+ * @param   objArguments objArguments to set
+ *
+ * @example ObjectArguments를 설정
+ *   NXCore.setArgument(obj, {key:'value'});
+ * @example Key, Value 형태로 설정
+ *   NXCore.setArgument(obj, "key", "value");
+ */
+NXCore.setArgument = function(obj, objArguments) {
+	try {
+		if( !objArguments ) return;
+		if( !obj.uarguments) obj.uarguments = [];
+		
+		if( arguments.length == 3 ) {
+			obj.uarguments[arguments[1]] = arguments[2];
+		} else {
+			for(var p in objArguments) {
+				obj.uarguments[p] = objArguments[p];
+			}
+		}
+	} catch(err) { }
+}
+
+/**
+ * Object.uarguments 정보를 클리어한다.
+ * @param   obj object to clear
+ *
+ */
+NXCore.clearArgument = function(obj) {
+	try {
+		obj.uarguments = [];
+	} catch(err) {}
+}
+
+/**
+ * Object.uarguments의 속성 키를 배열로 반환한다.
+ * @param   obj object
+ * @return  Array
+ *
+ */
+NXCore.getArgumentKeys = function(obj) {
+	var returnKeys = new Array();
+	try {
+		if( obj.uarguments ) {
+			for(var p in obj.uarguments) {
+				returnKeys[returnKeys.length] = p;
+			}
+		}
+	} catch(err) {}
+	return returnKeys;
+}
+
+/**
+ * objArguments중에서 objDefaults의 속성 중에서 정의되지 않은 항목이 있으면 기본 값으로 설정한다.
+ * @param  objArguments
+ * @param  objDefaults  Default objArguments
+ * @return objArguments
+
+ * @example
+ *   var options = {modaless:false};
+ *   options = NXCore.setDefaults(options, {modaless:true, showtitle:true} );
+ */
+NXCore.setDefaults = function(objArguments, objDefaults) {
+	if( !objArguments ) objArguments = [];
+	if( !objDefaults ) objDefaults = [];
+	for(var p in objDefaults) {
+		try {
+			if( NXCore.isEmpty(objArguments[p]) ) objArguments[p] = objDefaults[p];
+		} catch(err) {
+			objArguments[p] = objDefaults[p];
+		}
+	}
+	return objArguments;
+}
+
+/**
+ * 데이터 셋의 칼럼정보(Layout)을 복사한다.
+ * <pre>
+ * 1. 파라메타
+ *   1) options
+ *     - copyconst : constant column 복사여부
+  *      true,       constant column 복사
+  *      false,      constant column 복사안함 (기본값)
+ * </pre>
+ * @param dsDst   대상 데이터셋 객체
+ * @param dsOrg   원본 데이터셋 객체
+ * @param options 옵션
+ * @example 
+ *    NXCore.copyLayout(dsDst, dsOrg);
+ */
+NXCore.copyLayout = function(dsDst, dsOrg, options) {
+	options = NXCore.setDefaults(options, {'copyconst': false});
+	dsDst.clear();
+	for(var i = 0; i < dsOrg.colcount - dsOrg.constcount; i++) {
+		var colInfo = dsOrg.getColumnInfo(i);
+		dsDst.addColumnInfo(colInfo.name, colInfo);
+	}
+	if( options.copyconst ) {
+		for(var i = 0; i < dsOrg.constcount; i++) {
+			dsDst.addConstColumn( dsOrg.getConstColID(i), dsOrg.getConstColumn(i) );
+		}
+	}
+}
+
+/**
+ * 검색된 Row Indexes를 반환한다.
+ * @param  dsObj 데이터셋
+ * @param  strExpr 검색 표현식
+ * @return row indexes
+ * @example
+ *   var strExpr = NXCore.format("getRowType(currow)=={0} || getRowType(currow)=={1}", Dataset.ROWTYPE_INSERT, Dataset.ROWTYPE_UPDATE);
+ *   var arrRow = NXCore.searchedRows(dsOut, strExpr);
+ * 
+ *   var arrRow = NXCore.searchedRows(dsOut, "currow==1");
+ */
+NXCore.searchedRows = function(dsObj, strExpr) {
+	var arrIdx = new Array();
+	var nSearchRow  = dsObj.findRowExpr(strExpr, 0);
+	while( nSearchRow > -1 ) {
+		arrIdx[arrIdx.length] = nSearchRow;
+		nSearchRow = dsObj.findRowExpr(strExpr, nSearchRow+1);
+	}
+	return arrIdx;
+}
+
+/**
+ * 검색된 Row Count를 반환한다.
+ * @param  dsObj 데이터셋
+ * @param  strExpr 검색 표현식
+ * @return row count
+ */
+NXCore.searchedCount = function(dsObj, strExpr) {
+	return searchedRows(dsObj, strExpr).length;
+}
+
+/**
+ * 검색된 Row를 삭제한다.
+ * <pre>
+ * 1. 파라메타
+ *   1) options
+ *     - enableevent   : 데이터셋의 이벤트 발생 여부
+ *       false,          데이터셋 이벤트 미 발생 (기본값)
+ *       true,           데이터셋 이벤트 발생
+ *   2) deletemark     : deleteRow()가 아닌 NXCore.ROWTYPE 칼럼에 삭제표시 여부부 (칼럼이 없으면 추가)
+ *       false,          deleteRow() 사용 (기본값)
+ *       true,           setColumn()을 이용해서 NXCore.ROWTYPE_D 값 설정
+ * </pre>
+ * @param  dsObj 데이터셋
+ * @param  strExpr 검색 표현식
+ * @param  options 옵션 [{enableevent:false, deletemark:false}]
+ * @return deleted rowcount
+ * @example
+ *   NXCore.deleteRows(dsOut, "currow==1");
+ */
+NXCore.deleteRows = function(dsObj, strExpr, options) {
+	if( !options ) options = {enableevent:false, deletemark:false};
+	
+	var bOldEvent 		= dsObj.enableevent;
+	dsObj.enableevent 	= options.enableevent;
+
+	if( options.deletemark ) {
+		if( dsObj.getColumnInfo(NXCore.ROWTYPE) == null ) {
+			dsObj.addColumn(NXCore.ROWTYPE, "string", 1);
+		}
+	}
+	
+	var arrIdx = NXCore.searchedRows(dsObj, strExpr);
+	for(var i = arrIdx.length-1; i > -1; i--) {
+		if( options.deletemark  ) {
+			switch(dsObj.getRowType(arrIdx[i])) {
+			case Dataset.ROWTYPE_NORMAL:
+			case Dataset.ROWTYPE_UPDATE:
+				dsObj.setColumn(arrIdx[i], NXCore.ROWTYPE, NXCore.ROWTYPE_D);
+				break;
+			case Dataset.ROWTYPE_INSERT:
+				dsObj.deleteRow(arrIdx[i]);
+				break;
+			}
+		} else {
+			dsObj.deleteRow(arrIdx[i]);
+		}
+	}
+	dsObj.enableevent = bOldEvent;
+	return arrIdx.length;
+}
+
+/**
+ * Grid or Dataset에서 선택된 Row Indexes를 반환한다.
+ * @param  obj dataset or grid
+ * @return selected-row indexes
+ */
+NXCore.selectedRows = function(obj) {
+	var arrROW = new Array();
+	switch(NXCore.typeof(obj)) {
+		case 'dataset':
+			arrROW.push(obj.rowposition);
+			break;
+		case 'grid':
+			switch(obj.selecttype) {
+			case 'row':
+			case 'multirow':
+			case 'currow':
+				arrROW = obj.getSelectedDatasetRows();
+				break;
+			case 'multiarea':
+			case 'area':
+				// 다중선택이 가능하기에 selectstartrow는 배열 타입이다.
+				for(var i = 0; i < obj.selectstartrow.length; i++) {
+					if( obj.selectstartrow[i] >= 0 && obj.selectendrow[i] >= 0) {
+						for(var j = obj.selectstartrow[i]; j <= obj.selectendrow[i]; j++) {
+							if( arrROW.indexOf(j) == -1) arrROW.push(j);
+						}
+					}
+				}
+				break;
+			default:	// cell, treecell, multitreecell
+				if( obj.currentrow > -1) arrROW.push(obj.currentrow);
+				break;
+			}
+	}
+	return arrROW;
+}
+
+/**
+ * 검색된 모든 Row에 값을 설정한다.
+ * @param  dsObj    데이터셋
+ * @param  strExpr  검색 표현식
+ * @param  strColId 칼럼ID
+ * @param  newValue 새로운 값
+ * @return updated rowcount
+ * @example
+ *   NXCore.setSearchedRows(dsOut, "CHK==0", "CHK", null);
+ */
+NXCore.setSearchedRows = function(dsObj, strExpr, strColId, newValue) {
+	var nCount = 0;
+	var nSearchRow  = dsObj.findRowExpr(strExpr, 0);
+	while( nSearchRow > -1 ) {
+		dsObj.setColumn(nSearchRow, strColId, newValue);
+		nSearchRow = dsObj.findRowExpr(strExpr, nSearchRow+1);
+		nCount++;
+	}
+	return nCount;
+}
+
+/**
+ * 검색된 Row를 복사한다.
+ * <pre>
+ * 1. 파라메타
+ *   1) options
+ *     - copylayout  : 칼럼정보 복사여부
+ *       false,        복사안함 (기본값)
+ *       true,         칼럼정보 복사
+ *     - copyconst   : 상수 칼럼정보 복사여부 
+ *       false,        복사안함 (기본값)
+ *       true,         상수칼럼정보 복사
+ *     - cleardata   : 대상 데이터셋의 clearData() 호출여부
+ *       true,         대상 데이터셋 clearData() 호출 (기본값)
+ *       false,        대상 데이터셋에 데이터를 추가한다
+ *     - enableevent : 대상 데이터셋의 enableevent 발생 여부
+ *       true,         대상 데이터셋 이벤트 발생
+ *       false,        대상 데이터셋 이벤트 발생안함
+ *     - deleted     : 삭제된 ROW도 복사할지 여부
+ *       false,        포함하지 않음(기본값)
+ *       true,         삭제된 ROW도 복사한다. 
+ *     - setrowtype  : 사용자 정의 NXCore.ROWTYPE 설정 여부 (NXCore.ROWTYPE 칼럼이 없으면 추가한다.)
+ *       false,        아무 처리도 하지 않음 (기본값)
+ *       true,         대상 데이터셋의 NXCore.ROWTYPE 칼럼에 원본 데이터셋의 ROWTYPE을 설정한다.
+ *   2) strColInfo
+ *     - Dataset.copyRow()와 동일하게 복사한 칼럼을 맵핑한다. 단, '*' 매칭 기능을 제공한다.
+ *       예) INP*=OUT*, dsOrg에서 OUT으로 시작되는 칼럼명을 dsDst의 INP로 시작하는 칼럼명에 복사한다.
+ *     - 값이 없는 경우는 동일한 칼럼으로 복사한다.
+ * </pre>
+ * @param  dsDst      {required} 대상데이터셋
+ * @param  dsOrg      {required} 원본데이터셋
+ * @param  strExpr    {required} 원본데이터셋의 검색 표현식
+ * @param  strColInfo {optional} 칼럼맵핑 [동일한 칼럼으로 복사]
+ * @param  options    {optional} 실행 옵션 [{cleardata:true, enableevent:true, copylayout:false, copyconst:false}]
+ * @return number of copy records
+ * @example 전체 ROW (삭제된 ROW 포함)
+ *   NXCore.copySearchedRows(dsDst, dsOrg, "currow >= 0", null, {clear:true, deleted:true});
+ * @example 변경된 ROW
+ *   var strExpr = NXCore.format("getRowType(currow)=={} || getRowType(currow)=={}", Dataset.ROWTYPE_INSERT, Dataset.ROWTYPE_UPDATE);
+ *   NXCore.copySearchedRows(dsDst, dsOrg, strExpr);
+ */
+NXCore.copySearchedRows = function(dsDst, dsOrg, strExpr, strColInfo, options) {
+	options = NXCore.setDefaults(options, {copylayout:false, copyconst:false, cleardata:true, enableevent:false, deleted:false, setrowtype:false});
+
+	var bEnable 		= dsDst.enableevent;
+	dsDst.enableevent 	= options.enableevent;
+	
+	if( options.copylayout ) {
+		NXCore.copyLayout(dsDst, dsOrg, {'copyconst':options.copyconst } );
+	} else if( options.cleardata ) {
+		dsDst.clearData();
+	} 
+	if( options.setrowtype ) {
+		dsDst.addColumn(NXCore.ROWTYPE, "string", 1);
+	}
+	var nOldRow = dsDst.rowposition;
+	
+	strColInfo = NXCore._buildColumnInfo(dsDst, dsOrg, strColInfo);
+	var nCopyCount = 0;
+	var nSearchRow  = dsOrg.findRowExpr(strExpr, 0);
+	while( nSearchRow > -1 ) {
+		var nNewRow = dsDst.addRow();
+		dsDst.copyRow(nNewRow, dsOrg, nSearchRow, strColInfo);
+		if( options.setrowtype ) {
+			switch( dsOrg.getRowType(nSearchRow) ) {
+			case Dataset.ROWTYPE_NORMAL : dsDst.setColumn(nNewRow, NXCore.ROWTYPE, NXCore.ROWTYPE_N); break;
+			case Dataset.ROWTYPE_INSERT : dsDst.setColumn(nNewRow, NXCore.ROWTYPE, NXCore.ROWTYPE_I); break;
+			case Dataset.ROWTYPE_UPDATE : dsDst.setColumn(nNewRow, NXCore.ROWTYPE, NXCore.ROWTYPE_U); break;
+			case Dataset.ROWTYPE_DELETE : dsDst.setColumn(nNewRow, NXCore.ROWTYPE, NXCore.ROWTYPE_D); break;
+			}
+		}
+		nSearchRow = dsOrg.findRowExpr(strExpr, nSearchRow+1);
+		nCopyCount++;
+	}
+	
+	// 삭제된 ROW 복사여부
+	if( options.deleted ) {
+		var arrOrgCol = [];
+		var arrDstCol = [];
+		if( NXCore.isEmpty(strColInfo) ) {
+			for(var i = 0; i < dsOrg.colcount; i++) {
+				arrDstCol.push(dsOrg.getColID(i));
+				arrOrgCol.push(dsOrg.getColID(i));
+			}
+		} else {
+			var arrColInfo = strColInfo.split2(",", "="); // COL0=COL0,COL1=COL1
+			for(var i = 0; i < arrColInfo.length; i++) {
+				arrDstCol.push(arrColInfo[i][0]);
+				arrOrgCol.push(arrColInfo[i][1]);
+			}
+		}
+		
+		var nDelRowCnt = dsOrg.getDeletedRowCount();
+		for(var i = 0; i < nDelRowCnt; i++) {
+			dsDst.addRow();
+			nCopyCount++;
+			for(var j = 0; j < arrOrgCol.length; j++) {
+				dsDst.setColumn(dsDst.rowposition, arrDstCol[j], dsOrg.getDeletedColumn(i, arrOrgCol[j]));
+			}
+			if( options.setrowtype ) {
+				dsDst.setColumn(dsDst.rowposition, NXCore.ROWTYPE, NXCore.ROWTYPE_D);
+			}
+		}
+	}
+	dsDst.rowposition = nOldRow;
+	dsDst.enableevent = bEnable;
+	return nCopyCount;
+}
+
+/**
+ * 복사할 두 데이터셋의 칼럼 맵핑정보를 생성한다.
+ * <pre>
+ * '*' postfix만 지원한다.
+ * </pre>
+ * @param dsDst {required} 대상 데이터셋
+ * @param dsOrg {required} 원본 데이터셋
+ * @param strColInfo {optional} 맵핑 칼럼정보 [예) "TOCOL=FROMCOL,TO*=FROM*"]
+ * @return String
+ * @example 
+ *   NXCore._buildColumnInfo(dsDst, dsOrg, "INP=*=OUT*,COL0=COL0,COL1=COL1")
+ */
+NXCore._buildColumnInfo = function (dsDst, dsOrg, strColInfo) {
+	if( NXCore.isEmpty(strColInfo) ) {
+		return "";
+	}
+	
+	var arrFRCol = new Array();
+	var arrTOCol = new Array();
+	for(var i = 0; i < dsOrg.colcount - dsOrg.constcount; i++) {
+		arrFRCol.push(dsOrg.getColID(i));
+	}
+	for(var i = 0; i < dsDst.colcount - dsDst.constcount; i++) {
+		arrTOCol.push(dsDst.getColID(i));
+	}
+	
+	var arrPattern 	= null;
+	var strReturn 	= "";
+	var arrExpr 	= strColInfo.split2(",", "=");
+	for(var i = 0; i < arrExpr.length; i++) {
+		var strFRExpr = arrExpr[i][1].trim();
+		var strTOExpr = arrExpr[i][0].trim();
+		
+		if( NXCore.isEmpty(strTOExpr) || NXCore.isEmpty(strFRExpr) ) {
+			continue;
+		} else if( strTOExpr.indexOf("*") == -1 && strFRExpr.indexOf("*") == -1) {
+			// 'ToColumn=FromColumn'
+			var strTmp = strTOExpr + "=" + strFRExpr;
+			if( strReturn.indexOf(strTmp) == -1) {
+				strReturn += strTmp + ",";
+			}
+		} else if(strTOExpr == '*' && strFRExpr == '*' ) {
+			// '*=*'
+			for(var j = 0; j < arrFRCol.length; j++) {
+				if( dsDst.getColumnInfo(arrFRCol[j]) != null) {
+					var strTmp = arrFRCol[j] + "=" + arrFRCol[j];
+					if( strReturn.indexOf(strTmp) == -1) {
+						strReturn += strTmp + ",";
+					}
+				}
+			}
+		} else {
+			// 'To*=From*'
+			if( arrPattern == null ) {
+				arrPattern = new Array();
+				var strPrefix  = "";
+				var strPostfix = "";
+				if( strFRExpr.startsWith('*') ) {
+					strPostfix = strFRExpr.substr(1);
+				} else if( strFRExpr.endsWith('*') ) {
+					strPrefix  = strFRExpr.substr(0, strFRExpr.length-1);
+				} else if( strFRExpr.indexOf('*') > 0 ) {
+					var nIdx  = strFRExpr.indexOf('*');
+					strPrefix = strFRExpr.substr(0, nIdx);
+					strPostfix= strFRExpr.substr(nIdx+1);
+				}
+				for(var j = 0; j < arrFRCol.length; j++) {
+					if( arrFRCol[j].startsWith(strPrefix) && arrFRCol[j].endsWith(strPostfix)) {
+						arrPattern[arrPattern.length] = arrFRCol[j].substr(strPrefix.length, arrFRCol[j].length-strPostfix.length-strPrefix.length);
+						arrPattern[arrPattern.length] = arrFRCol[j];
+					}
+				}
+			}
+			for(var j = 0; j < arrPattern.length; j += 2) {
+				var strFindCol = strTOExpr.replace("*", arrPattern[j]);
+				if( dsDst.getColumnInfo(strFindCol) != null ) {
+					var strTmp = strFindCol + "=" + arrPattern[j+1];
+					if( strReturn.indexOf(strTmp) == -1) {
+						strReturn += strTmp + ",";
+					}
+				}
+			}
+		}
+	}
+	return strReturn;
+}
+
+
+/**
+ * 데이터셋에서 지정한 칼럼을 삭제한다. 
+ * <pre>
+ * 주의) Dataset.updatecontrol을 사용 하므로 Dataset.updatecontrol의 제약사항이 적용된다. (F1 도움말 참조)
+ * </pre>
+ * @param dsObj           데이터셋 객체
+ * @param deleteColInfo   삭제할 ColInfo [목록은 ','로 구분]
+ * @param excludeColInfo  제외할 ColInfo [목록은 ','로 구분]
+ * @example 삭제할 칼럼 지정
+ *    NXCore.deleteColumns(dsTmp, "COL0,COL1");
+ * @example "*"를 이용한 칼럼지정
+ *    NXCore.deleteColumns(dsTmp, "A*,B*", "AA*,BB*");
+ */
+NXCore.deleteColumns = function(dsObj, deleteColInfo, excludeColInfo) {
+	var arrColumn = [];
+	for(var i = 0; i < dsObj.colcount; i++ ) {
+		arrColumn.push(dsObj.getColID(i) );
+	}
+	
+	var arrDeleteCol  = arrColumn.findValues(deleteColInfo);
+	var arrExcludeCol = arrColumn.findValues(excludeColInfo);
+	for(var i = 0; i < arrExcludeCol.length; i++) {
+		var nIdx = arrDeleteCol.indexOf(arrExcludeCol[i]);
+		if( nIdx >= 0 ) {
+			arrDeleteCol.remove(nIdx);
+		}
+	}
+	
+	dsObj.updatecontrol = false;
+	for(var i = 0; i < arrDeleteCol.length; i++) {
+		dsObj.deleteColumn(arrDeleteCol[i]);
+	}
+	dsObj.set_updatecontrol(true);
+}
+
+
+/**
+ * 데이터셋의 변경 여부를 체크한다.
+ * <pre>
+ * 1. 파라메타
+ *   1) strExpr
+ *     변경 여부를 체크할 ROW를 지정한다. 없으면 전체 ROW를 대상으로 한다.
+ *     주의) 삭제된 ROW가 존재하는 경우는 변경된 것으로 인식한다.
+ * </pre>
+ * @param   dsObj   데이터셋 객체
+ * @param   strExpr 검사할 ROW 검색 표현식 [값이 없으면 전체] 
+ * @return  Boolean
+ *
+ */
+NXCore.isModified = function(dsObj, strExpr) {
+	if( dsObj.getDeletedRowCount() > 0) return true;
+	
+	var nRowType = 0;
+	if( NXCore.hasLength(strExpr) ) {
+		var arrRow = NXCore.searchedRows(dsObj, strExpr);
+		for(var i = 0; i < arrRow.length; i++) {
+			nRowType = dsObj.getRowType(arrRow[i]);
+			if( nRowType == Dataset.ROWTYPE_INSERT || nRowType == Dataset.ROWTYPE_UPDATE ) {
+				return true;
+			}
+		}
+	} else {
+		for(var i = 0; i < dsObj.rowcount; i++) {
+			nRowType = dsObj.getRowType(i);
+			if( nRowType == Dataset.ROWTYPE_INSERT || nRowType == Dataset.ROWTYPE_UPDATE ) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+/**
+ * 데이터셋의 RowType을 반환한다.
+ * <pre>
+ *   직접 ROWTYPE을 관리할 경우, NXCore.ROWTYPE=="D"인 경우만 참조하고, 나머지 경우는 Dataset.getRowType()을 이용한다.
+ * </pre>
+ * @param   dsObj 데이터셋
+ * @param   nRow  체크할 ROW
+ * @param   strType 표시할 타입 ['text'(default), 'image']
+ * @return  RowType
+ *
+ * @example 그리드 Cell에 설정하는 경우
+ *   Cell.expr => NXCore.getRowType(dsOut, currow)
+ */
+NXCore.getRowType = function(dsObj, nRow, strType) {
+	if( dsObj.getColumn(nRow, NXCore.ROWTYPE) == "D") {
+		return "D";
+	} else {
+		switch(dsObj.getRowType(nRow)) {
+		case Dataset.ROWTYPE_INSERT: return "I";
+		case Dataset.ROWTYPE_UPDATE: return "U";
+		default :                    return "N";
+		}
+	}
+}
+
+
+/**
+ * CSV Text를 텍스트 데이터셋으로 로딩한다.
+ * <pre>
+ * 1. 포맷
+ *   CSV 포맷은 http://www.ietf.org/rfc/rfc4180.txt을 기준으로 작성한다.
+ * 2. 파라메타
+ *   1) options
+ *     - rowstart         : 데이터셋으로 추가할 시작 ROW 인덱스 [0부터 시작]
+ *     - usecolumn        : 현재 데이터셋의 칼럼을 사용할지 여부
+ *       true,              칼럼을 있는 그대로 사용 (기본값)
+ *       false,             칼럼을 신규로 생성       
+ *                          첫번째 ROW를 기준으로 칼럼 갯수를 결정하며, 칼럼명은 Col_0001 부터 시작한다.
+ *                          (ExtCommon의 excelImportByIndexNF 함수와 호환을 위해서)
+ *     - columndelimiter  : COL 구분자 (NXCore.COMMA. 기본값]
+ * 
+ * </pre>
+ * @param  strCSV  CSV 텍스트
+ * @param  dsObj   데이터셋
+ * @param  options 옵션 [columndelimiter:NXCore.COMMA, rowstart:0, usecolumn:true]
+ * @return boolean
+ * @example 
+ *   NXCore.decodeCSVToDataset(strCSV, dsObj, {rowstart:0, usecolumn:true};
+ */
+NXCore.decodeCSVToDataset = function(strCSV, dsObj, options) {
+	//logger.debug("not Support[decodeCSVToDataset]");
+	//return false;
+	
+	var bEnableevent = dsObj.enableevent;
+	dsObj.set_enableevent(false);
+	dsObj.clearData();
+	
+	options = NXCore.setDefaults(options, {'columndelimiter':NXCore.COMMA, 'rowstart':0, 'usecolumn':true} );
+	try {
+		var bQuote = false;
+		var nLen   = strCSV.length;
+		var buffer = new Buffer();
+		var ch;
+		
+		//1) 첫 줄을 읽이서 칼럼을 생성한다.
+		if( !options.usecolumn ) {
+			for(var i = 0; i < nLen; i++) {
+				ch = strCSV.charAt(i);
+				if ( bQuote ) {
+					if ( ch == '"' ) {
+						if ( i+1 < nLen && strCSV.charAt(i+1) == '"' ) {
+							i++;
+						} else {
+							bQuote = false;							// Qoute 끝
+						}
+					}
+				} else {
+					if ( ch == options.columndelimiter ) {			// 칼럼 끝
+						var strColId = NXCore.format("Col_{0}", NXCore.lpad(dsObj.colcount+1, 4, "0") );
+						dsObj.addColumn(strColId, "string");
+					} else if ( ch == NXCore.CR ) {
+					   ;
+					} else if ( ch == NXCore.LF ) {					// ROW 끝
+						var strColId = NXCore.format("Col_{0}", NXCore.lpad(dsObj.colcount+1, 4, "0") );
+						dsObj.addColumn(strColId, "string");
+						break;
+					} else if ( ch == '"' ) {
+						bQuote = true;
+					}
+				}
+			}
+		}
+		
+		//2) 데이터를 추출한다.
+		bQuote = false;
+		buffer.clear();
+		dsObj.addRow();
+		var nColIdx = 0;
+		var nRowIdx = 0;
+		for(var i = 0; i < nLen; i++) {
+			ch = strCSV.charAt(i);
+			if ( bQuote ) {
+				if ( ch == '"' ) {
+					if ( i+1 < nLen && strCSV.charAt(i+1) == '"' ) {
+						buffer.appendText(ch);
+						i++;
+					} else {
+						bQuote = false;							// Qoute 끝
+					}
+				} else {
+					buffer.appendText(ch);
+				}
+			} else {
+				if ( ch == options.columndelimiter ) {			// COLUMN 끝
+					dsObj.setColumn(dsObj.rowposition, nColIdx, buffer.getText(0, -1));
+					buffer.clear();
+					nColIdx ++;
+				} else if ( ch == NXCore.CR ) {
+				   ;
+				} else if ( ch == NXCore.LF ) {					// ROW 끝
+					if( nRowIdx >= options.rowstart ) {
+						dsObj.setColumn(dsObj.rowposition, nColIdx, buffer.getText(0, -1));
+					} else {
+						// 설정한 ROW를 제거한다.
+						dsObj.deleteRow(dsObj.rowposition);
+					}
+					dsObj.addRow();
+					nColIdx = 0;
+					nRowIdx++;
+					buffer.clear();
+				} else if ( ch == '"' ) {
+					bQuote = true;
+				} else {
+					buffer.appendText(ch);
+				}
+			}
+		}
+		
+		//3) 마지막에 남은 항목 또는 빈 줄을 제거한다.
+		if( !buffer.isEmpty() || nColIdx > 0) {
+			dsObj.setColumn(dsObj.rowposition, nColIdx, buffer.getText(0, -1));
+			buffer.clear();
+		} else if(nColIdx == 0) {
+			// 마지막에 빈줄인 경우
+			dsObj.deleteRow(dsObj.rowposition);
+		}
+	} catch(err) {
+		trace("decodeCSVToDataset.catch=>" + e.message);
+	}
+	dsObj.set_enableevent(bEnableevent);
+	return true;
+	
+}
+
+/**
+ * lpad
+ * @param   objValue   값
+ * @param   nSize      총 길이 (bytes)
+ * @param   padChar    채울 문자
+ * @return  String
+ *
+ * @example
+ */
+NXCore.lpad = function(objValue, nSize, padChar) {
+	objValue = NXCore.empty(objValue);
+	var newValue = new String(objValue);
+	var nIteration = nSize - NXCore.byteLength(newValue);
+	for (var i = 0; i < nIteration; i++) {
+		newValue = padChar + newValue;
+	}
+	return newValue;
+}
+
+/**
+ * rpad
+ * @param   objValue   값
+ * @param   nSize      총 길이 (bytes)
+ * @param   padChar    채울 문자
+ * @return  String
+ *
+ * @example
+ */
+NXCore.rpad = function(objValue, nSize, padChar) {
+	objValue = NXCore.empty(objValue);
+	var newValue = new String(objValue);
+	var nIteration = nSize - NXCore.byteLength(newValue);
+	for (var i = 0; i < nIteration; i++) {
+		newValue =  newValue + padChar;
+	}
+	return newValue;
+}
+
+/**
+ * 크기를 byte 단위로 포맷팅한다.
+ * @param   nSize  크기
+ * @return  
+ *
+ * @example
+ *  NXCore.toByteFormat(123);       -> 123->123B
+ *  NXCore.toByteFormat(1234);      -> 1.21KB
+ *  NXCore.toByteFormat(12345);     -> 12.06KB
+ *  NXCore.toByteFormat(123456);    -> 120.56KB
+ *  NXCore.toByteFormat(1234567);   -> 1.18GB
+ */
+NXCore.toByteFormat = function(nSize) {
+	nSize = toNumber(nSize);
+	var nKilo = 1024;
+	var nMega = nKilo*nKilo;
+	var nGiga = nKilo*nMega;
+	if( nSize < nKilo ) {
+		return nSize + "B";
+	} else if( nSize < nMega ) {
+		return Math.ceil(nSize/nKilo,2) + "KB";
+	} else if( nSize < nGiga ) {
+		return Math.ceil(nSize/nMega,2) + "MB";
+	} else  {
+		return Math.ceil(nSize/nGiga,2) + "GB";
+	} 
+}
+
+/**
+ * 컴포넌트에 바인딩을 추가한다.
+ * @param  form    Object 
+ * @param  compId  컴포넌트Id 
+ * @param  propId  속성ID
+ * @param  datasetId 데이터셋ID
+ * @param  columnId  칼럼명
+ * @return Number 
+ * @example
+ *      NXCore.bind(this, "edtUser", "value", "dsOut", "column0");
+ */
+NXCore.bind = function(formObj, compId, propId, datasetId, columnId) {
+	NXCore.unbind(formObj, compId, propId);
+	
+	var bindId = NXCore.UID("item", 8);
+	var bindItem = new BindItem();
+	bindItem.init(bindId, compId, propId, datasetId, columnId);
+	formObj.addChild(bindId, bindItem); 
+	bindItem.bind();
+}
+
+/**
+ * 컴포넌트의 바인딩을 제거한다.
+ * @param form Object 
+ * @param compId 컴포넌트Id 
+ * @param propId 속성ID
+ * @example
+ *      NXCore.unbind(this, "edtUser", "value");
+ */
+NXCore.unbind = function(formObj, compId, propId) {
+	for(var i = 0; i < formObj.binds.length; i++) {	
+		if( formObj.binds[i].compid == compId && formObj.binds[i].propid == propId) {
+			var bindItem = formObj.binds[i];
+			formObj.removeChild(bindItem.name);
+			bindItem.destroy();
+			break;
+		}
+	}
+}
+
+/**
+ * 데이터셋을 바인딩한 컴포넌트(들)를 찾아서 반환한다.
+ * <pre>
+ * 1. 파라메타
+ *   1) options
+ *     - cascadechild : 하위 폼 검색여부
+ *       true,          모든 하위 폼 검색 (기본값)
+ *       false,         지벙한 폼만 검색
+ *     - firstmatch   : 일치하는 첫 번째 컴포넌트만 찾기
+ *       true,          첫번째 컴포넌트를 찾으면 리턴 (기본값)
+ *       false,         일치하는 모든 컴포넌트 찾기
+ *     - propertyname : 바인딩된 컴포넌트이 비교 속성을 지정한다.
+ *                      'value' (기본값)
+ *                      컴포넌트의 모든 속성에 데이터셋 바인딩이 가능하기때문에 비교할 속성명을 지정한다.
+ *                      여러 속성명을 지정할 때는 "," 구분자를 사용한다.
+ * </pre>
+ * @param formObj     폼 객체
+ * @param dsObj       데이터 셋
+ * @param strColumnId 칼럼명
+ * @param options     옵션 [ {cascadechild:true, firstmatch:true, propertyname:'value' } ]
+ * @return null or Object or Array()
+ * @example dsOut(COLUMN0)가 바인딩된 첫 번째 컴포넌트 찾기
+ *   var obj = NXCore.bindedComponent(this, dsOut, "COLUMN0");
+ *   if( obj ) {
+ *      trace( NXCore.typeof(obj) );
+ *   }
+ * @example dsOut(COLUMN0)이 바인딩된 모든 컴포넌트 찾기
+ *   var arrObj = NXCore.bindedComponent(this, dsOut, "COLUMN0");
+ *   if( arrObj ) {
+ *     for(var i = 0; i < arrObj.length; i++) {
+ *       trace( NXCore.typeof(arrObj[i]) );
+ *     }
+ *   }
+ */
+NXCore.bindedComponent = function(formObj, dsObj, strColumnId, options) {
+	options = NXCore.setDefaults(options, {cascadechild:true, firstmatch:true, propertyname:'value'} );
+	var arrResult 	= new Array();
+	var arrPropName = options.propertyname.splitEmpty(",");
+	
+	// 폼을 순차적으로 traverse해서 매칭되는 컴포넌트들을 추출한다.
+	var arrForm = [formObj];
+	for(var i = 0; i < arrForm.length; i++) {
+		if( options.cascadechild ) {
+			var arrComponents = arrForm[i].components;
+			if( arrComponents ) {
+				for(var j = 0; j < arrComponents.length; j++) {
+					var typename = NXCore.typeof(arrComponents[j]);
+					if( typename == 'tab' || typename == 'tabpage' || typename == 'div' ) {
+						arrForm.push(arrComponents[j]);
+					}
+				}
+			}
+		}
+		
+		// 바인딩정보에서 찾는다.
+		var binds = arrForm[i].binds;
+		if( binds ) {
+			for(var j = 0; j < binds.length; j++) {	
+				if( binds[j].datasetid == dsObj.name && binds[j].columnid == strColumnId && arrPropName.indexOf(binds[j].propid) >= 0 )  {
+					var objComp = eval(binds[j].compid);
+					if( options.firstmatch ) {
+						return objComp;
+					} else {
+						arrResult.push(objComp);
+					}
+				}
+			}
+		}
+	}
+	return arrResult.length == 0 ? null : arrResult;
+}
+
+
+/**
+ * id로 사용할 수 있는 unique id 문자열을 생성한다.
+ * @param  strPrefix 앞에 붙일 문자열
+ * @param  nSize     자릿수 [default, 6]
+ * @return String
+ * @example
+ *      NXCore.UID("edt", 4) -> "edtAAAB";
+ */
+NXCore.UID = function(strPrefix, nSize) {
+	strPrefix = NXCore.empty(strPrefix);
+	nSize 	  = NXCore.empty(nSize, 6);
+	var chars = '0123456789ABCDEF'.split('');
+	var uid = [];
+	for (var i = 0; i < nSize; i++) {
+		uid[i] = Math.floor(Math.random()*0x10);
+		uid[i] = chars[uid[i]];
+	}	
+	return strPrefix + uid.join('');
+}
+
+/**
+ * 36bit UUID를 생성한다.
+ * <pre>
+ * http://www.ietf.org/rfc/rfc4122.txt
+ * </pre>
+ * @return String
+ */
+NXCore.UUID = function() {
+    var s = [];
+    var hexDigits = "0123456789abcdef";
+    for (var i = 0; i < 36; i++) {
+        s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+    }
+    s[14] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
+    s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
+    s[8] = s[13] = s[18] = s[23] = "-";
+
+    var uuid = s.join("");
+    return uuid;
+}
+
+
+/**
+ * 해당 기능을 프로젝트에서 지원하는지 체크한다.
+ * <pre>
+ * application.onload 이벤트에서 gv_support 변수에 값을 설정한다.
+ * 1. 파라메타
+ *    NXCore.EMBED, NXCore.RUNTIME, NXCore.WIDGET : 실행 방법
+ *    NXCore.MDI,   NXCore.SDI		              : 화면 구조
+ *    NXCore.WA                                   : 웹 접근성 적용
+ * </pre>
+ * @param strSupport 체크할 프로젝트 기능
+ * @return Boolean
+ * @example
+ *    if( NXCore.isSupport(NXCore.WA) ) {}
+ */
+NXCore.isSupport = function(strSupport) {
+	if( application.lookup("gv_support") ) {
+		return NXCore.empty(application.gv_support).indexOf(strSupport) >= 0;
+	}
+	return false;
+}
+
+/**
+ *  Alert 메시지를 보여준다.
+ * <pre>
+ * 1) gds_clientMsg에서 strFormat을 검색해서 존재하면 처리한다.
+ * </pre>
+ * @param strFormat 메시지 포맷 또는 메시지ID
+ * @param arrArgs   메시지 포맷에서 사용할 파라메타 배열
+ * @param strTitle  Alert 타이틀 [default, "Alert"]
+ * @param strType   icon 타입 
+ */
+NXCore.alert = function(strFormat, arrArgs, strTitle, strType) {
+	strTitle = NXCore.empty(strTitle, "Alert");
+	strType  = NXCore.empty(strType,  "information");
+	var strText = NXCore.getMessage(strFormat, arrArgs);
+	switch(strFormat.substr(0,2) ) {
+		case 'e.': strType = "error"; 		break;
+		case 'q.': strType = "question"; 	break;
+		case 'w.': strType = "warnning"; 	break;
+	}
+	return application.alert(strText, strTitle, strType);
+}
+/**
+ * Confirm 메시지를 보여준다.
+ * <pre>
+ * 1) gds_clientMsg에서 strFormat을 검색해서 존재하면 처리한다.
+ * </pre>
+ * @param strFormat 메시지 포맷 또는 메시지ID
+ * @param arrArgs   메시지 포맷에서 사용할 파라메타 배열
+ * @param strTitle  Alert 타이틀 [default, "Alert"]
+ * @param strType   icon 타입 
+ * @return Boolean
+ */
+NXCore.confirm = function(strFormat, arrArgs, strTitle, strType) {
+	strTitle = NXCore.empty(strTitle, "Alert");
+	strType  = NXCore.empty(strType,  "information");
+	var strText = NXCore.getMessage(strFormat, arrArgs);
+	switch(strFormat.substr(0,2) ) {
+		case 'e.': strType = "error"; 		break;
+		case 'q.': strType = "question"; 	break;
+		case 'w.': strType = "warnning"; 	break;
+	}
+	return application.confirm(strText, strTitle, strType);
+}
+
+/**
+ * 컴포넌트에 포커스를 설정한다.
+ * @param obj 포커스를 설정할 객체 
+ */
+NXCore.setFocus = function(obj) {
+	if( NXCore.isSupport(NXCore.WA) && NXCore.typeof(obj) == "grid") {
+		// Grid인 경우 WA기능 비활성화
+		obj.enableevent = false;
+		obj.setFocus();
+		obj.enableevent = true;
+	} else {
+		obj.setFocus();
+	}
+	
+	// EMBED(SDI)인 경우 웹브라우저의 scrollbar를 현재 컴포넌트가 있는 곳 까지 이동한다.
+	if( NXCore.isSupport(NXCore.EMBED) && !NXCore.isSupport(NXCore.MDI) ) {
+		var nOffset = obj.position.top;
+		try {
+			for(obj = obj.parent; NXCore.typeof(obj) != "form"; obj = obj.parent ) {
+				if( NXCore.typeof(obj) != "form" ) {
+					nOffset += obj.position.top;
+				}
+				else break;
+			}
+		} catch(err) {}
+		// EMBED된 경우
+		NXCore.THISFORM.gf_callScript("xp_scrollBrowser", nOffset);
+	}
+}
+
+/**
+ * gds_clientMsg에서 일치하는 메시지를 찾아서 반환한다.
+ * <pre>
+ * 1) gds_clientMsg에 없는 경우 메시지ID를 메시지 텍스트로 사용한다.
+ * </pre>
+ * @param strFormat 메시지포맷 or 메시지ID
+ * @param ...       메시지포맷 파라메타
+ * @example
+ *    NXCore.getMessage("e.valid.required",       "이름"); -> "이름: 필수입력입니다."
+ *    NXCore.getMessage("{0}: 필수입력입니다.", "이름"); -> "이름: 필수입력입니다."
+ */
+NXCore.getMessage = function(strFormat) {		
+	var params = [];
+	for( var i = 0; i < arguments.length; i++ ) {
+		if( arguments[i] instanceof Array) {
+			for(var j = 0; j < arguments[i].length; j++ ) 
+				if ( application.gv_lang != "KR" ) {
+					var nRow = application.gds_language.findRow("META_CODE", arguments[i][j].replace(/\s/gi, ''));
+					if ( nRow != -1 ) {
+						params.push(NXCore.empty(application.gds_language.getColumn(nRow, "META_NAME"))); 	
+					} else {
+						params.push(NXCore.empty(arguments[i][j])); 	
+					}
+				} else {
+					params.push(NXCore.empty(arguments[i][j])); 	
+				}
+		} else {
+			if ( NXCore.isEmpty(arguments[i]) ) continue;
+			if ( application.gv_lang != "KR" ) {
+				var nRow = application.gds_language.findRow("META_CODE", arguments[i].replace(/\s/gi, ''));
+				if ( nRow != -1 ) {
+					params.push(NXCore.empty(application.gds_language.getColumn(nRow, "META_NAME"))); 	
+				} else {
+					params.push(NXCore.empty(arguments[i]));
+				}
+			} else {
+				params.push(NXCore.empty(arguments[i]));
+			}
+		}	
+	}
+	
+	strFormat = new String(params.shift());
+	var strText = strFormat;
+	try {
+		var langCd = application.gv_lang == "KR" ? "MSG_TXT" : "MSG_"+application.gv_lang;
+		strText = NXCore.empty(application.gds_clientMsg.lookup("MSG_ID", strFormat, langCd), strFormat);
+	} catch(err) {}
+	return NXCore.format(strText, params);
+}
+
+
+/**
+ * 환경정보를 반환한다.
+ * <pre>
+ * gds_env에서 칼럼정보를 반환한다.
+ * </pre>
+ * @param strColId 칼럼ID
+ * @return Object
+ */
+NXCore.getEnv = function(strColId) {
+	return application.gds_env.lookup("RUN_MODE", gv_runMode, strColId);
+}
+
+
+/**
+ * 환경정보를 설정한다.
+ * <pre>
+ * gds_env에서 칼럼정보를 반환한다.
+ * </pre>
+ * @param strColId 칼럼ID
+ * @return Object
+ */
+NXCore.setEnv = function(strColId, varValue) {
+	var nRow = application.gds_env.findRow("RUN_MODE", gv_runMode);
+	application.gds_env.setColumn(nRow, strColId, varValue);
+}
+
+/**
+ * 사용자정보를 반환한다.
+ * <pre>
+ * gds_user에서 칼럼정보를 반환한다.
+ * </pre>
+ * @param strColId 칼럼ID
+ * @return Object
+ */
+NXCore.getUser = function(strColId) {
+	return application.gds_user.getColumn(0, strColId);
+}
+
+/**
+ * NXLogger Object
+ * @param   formObj 폼 객체
+ *
+ */  
+NXLogger = function(formObj) {
+	this._formObj	= formObj;
+	this._formUrl 	= '';
+}
+
+/**
+ * 현재 폼의 URL에서 파일명만 반환한다.
+ * @param   formObj form object
+ * @return  String
+ *
+ */
+NXLogger.prototype.getFormUrl = function() {
+	if( !this._formUrl ) {
+		var strUrl = NXCore.typeof(this._formObj) == "form" ? this._formObj.getOwnerFrame().formurl : this._formObj.url;
+		if( strUrl.indexOf("::") > -1 ) {
+			this._formUrl = strUrl.split("::")[1];
+		} else if( strUrl.indexOf("/") > -1 ) {
+			var tmp = strUrl.split("/");
+			this._formUrl = tmp[tmp.length-1];
+		} else if( strUrl.indexOf("\\") > -1) {
+			var tmp = strUrl.split("\\");
+			this._formUrl = tmp[tmp.length-1];
+		} 
+	}
+	return this._formUrl;
+}
+	
+/**
+ * trace log를 출력한다.
+ * @param   strFormat 출력할 포맷 문자열
+ *
+ * @example
+ *   logger.debug("Hello {0}!", "tobe");
+ */
+NXLogger.prototype.debug = function(strFormat) {
+	var arrParam = new Array();
+	for( var i = 0; i < arguments.length; i++ ) arrParam.push(arguments[i]);
+	trace("[DEBUG-" +this.getFormUrl()+ "] "+ NXCore.format(arrParam));
+}
+
+/**
+ * error log를 출력한다.
+ * @param   strFormat 출력할 포맷 문자열
+ *
+ * @example
+ *   console.error("Hello {0}!", "jang");
+ */
+NXLogger.prototype.error = function() {
+	var arrParam = new Array();
+	for( var i = 0; i < arguments.length; i++ ) arrParam.push(arguments[i]);
+	trace("[ERROR-" +this.getFormUrl()+ "] "+ NXCore.format(arrParam));
+}
+
+
+/**
+ * Builtin String
+ */
+//alert(String.prototype.startsWith);
+//if (!String.prototype.startsWith ) {
+    /**
+     * 지정한 문자열로 시작되는지 체크한다.
+     * @param   str value to find
+     * @return  Boolean
+     *
+     * @example
+     *   if( "this is test".startsWith("this") ) {...}
+     */
+	String.prototype.startsWith = function(str) {
+		return this.indexOf(str,0)==0;
+	}
+	
+    /**
+     * 지정한 문자열로 끝나는지 체크한다.
+     * @param   str value to find
+     * @return  Boolean
+     *
+     */
+	String.prototype.endsWith = function(str) {
+		var nStart = this.length - str.length;
+		return this.indexOf(str, nStart)==nStart;
+	}
+
+    /**
+     * split()시에 빈 값인 경우 Array(0)를 반환한다.
+     * <pre>
+     * BuiltIn 기능에서는 빈 값이 경우 Array(1)을 반환한다.
+     * </pre>
+     * @param   seperator 
+     * @return  Array(0) or Array(N)
+     *
+     */
+	String.prototype.splitEmpty = function(str) {
+		var retVals = new Array(0);
+		if( NXCore.isEmpty(this) ) {
+			return retVals;
+		} else {
+			return this.split(str);
+		}
+	}
+	
+    /**
+     * 문자열을 delimiter1, delimiter2로 연속으로 split()해서 2차원 배열을 반환한다.
+     * @return Array of Array
+     * @example
+     *    var arr = "COL0=COL0,COL2=COL2".split2(",", "="); --> 2 x 2 배열
+     */
+	String.prototype.split2 = function(delimiter1, delimiter2) {
+		var arrRow = this.splitEmpty(delimiter1);
+		for(var i = 0; i < arrRow.length; i++) {
+			arrRow[i] = arrRow[i].splitEmpty(delimiter2);
+		}
+		return arrRow;
+	}
+//}
+
+/**
+ * Builtin Array
+ */
+//if (!Array.prototype.indexOf ) {
+    /**
+     * Array에서 첫번째로 일치하는 인덱스를 반환한다.
+     * @param   value value to find
+     * @param   start start index [default, 0]
+     * @return  -1 or Index
+     *
+     */
+	Array.prototype.indexOf = function(value, start) {
+		start = NXCore.empty(start,0);
+		for(var i = start; i < this.length; i++) {
+			if( this[i] === value ) return i; 
+		}
+		return -1;
+	}
+    /**
+     * Array에서 마지막으로 일치하는 인덱스를 반환한다.
+     * @param   value value to find
+     * @param   start start index [default, 0]
+     * @return  -1 or Index
+     *
+     */
+	Array.prototype.lastIndexOf = function(value, start) {
+		start = NXCore.empty(start, this.length-1);
+		for(var i = start; i >= 0; i--) {
+			if( this[i] === value ) return i; 
+		}
+		return -1;
+	}
+    /**
+     * Array에서 지정한 index를 삭제한다.
+     * @param   index index to remove
+     *
+     */
+	Array.prototype.remove = function(index) {
+		var arrPost = new Array();
+		for(var i = this.length; i > index; i--) {
+			arrPost.push(this.pop());
+		}
+		for(var i = arrPost.length - 2; i >= 0; i--) {
+			this.push(arrPost[i]);
+		}
+		return this;
+	}
+
+	/**
+	 * 배열에서 패턴과 일치하는 값들을 반환한다.
+	 * 1. 파라메타
+	 *   1) strPattern : 항목에서 찾을 패턴 목록.
+	 *                   여러개를 지정할 경우 ',' 구분자를 사용한다.
+	 *                   '*' 패턴을 사용할 수 있다.
+	 *                   예제) "COL*,INP*,COLUMN"
+	 * @param strPattern 찾을 항목 패턴 [여러개인 경우 ','로 구분한다. '*'를 허용한다.]
+	 * @return Array of Value
+	 * @example 'COL'로 시작하는 값 찾기
+	 *   var arrResult = arrValues.findValues("COL*,INPUT01,INPUT02");
+	 */
+	Array.prototype.findValues = function(strPattern) {
+		strPattern = NXCore.empty(strPattern);
+		var arrPattern = strPattern.splitEmpty(",");
+		var arrResult = [];
+		
+		for(var i = 0; i < arrPattern.length; i++) {
+			if( arrPattern[i].indexOf("*") != -1 ) {// '*'를 포함한 경우
+				var strPrefix  = "";
+				var strPostfix = "";
+				if( arrPattern[i].startsWith('*') ) {
+					strPostfix = arrPattern[i].substr(1);
+				} else if( arrPattern[i].endsWith('*') ) {
+					strPrefix  = arrPattern[i].substr(0, arrPattern[i].length-1);
+				} else if( arrPattern[i].indexOf('*') > 0 ) {
+					var nIdx  = arrPattern[i].indexOf('*');
+					strPrefix = arrPattern[i].substr(0, nIdx);
+					strPostfix= arrPattern[i].substr(nIdx+1);
+				}
+				
+				for(var j = 0; j < this.length; j++) {
+					var bMatch = false;
+					if( strPrefix.length > 0 &&  strPostfix.length > 0) {
+						if( this[j].startsWith(strPrefix) && this[j].endsWith(strPostfix) ) {
+							bMatch = true;
+						}
+					} else if( strPrefix.length > 0 && this[j].startsWith(strPrefix)) {
+						bMatch = true;
+					} else if( strPostfix.length > 0 && this[j].endsWith(strPostfix) ) {
+						bMatch = true;
+					}
+					
+					if( bMatch && arrResult.indexOf(this[j]) == -1 ) {
+						arrResult.push(this[j]);
+					}
+				}
+			} else if( this.indexOf(arrPattern[i]) >= 0 && arrResult.indexOf(arrPattern[i]) == -1) {
+				arrResult.push(arrPattern[i]);
+			}
+		}
+		return arrResult;
+	}
+//}]]></Script>

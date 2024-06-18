@@ -1,0 +1,461 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Script type="xscript5.0"><![CDATA[
+/**
+ * Javascript의 Date 객체를 Wrapping해서 문자열 날짜를 처리할 수 있도록 구현한다.
+ * <pre>
+ * 1. 사용 예
+ *   1) 현재 날짜 문자열
+ *      NXDate.valueOf().toFormatString("yyyyMMdd");
+ *   2) 날짜의 포맷을 변경
+ *      NXDate.valueOf("20121231","yyyyMMdd").toFormatString("yyyy-MM-dd");
+ * </pre>
+ * @author tobe
+ *
+ */
+
+/**
+ * NXDate Object
+ * <pre>
+ * @param  Date or NXDate 날짜
+ * @return NXDate 
+ * @example 현재 시간
+ *   var date = new NXDate();
+ * @example 객체를 생성
+ *   var date = NXDate.valueOf("20121231");
+ *  
+ */
+NXDate = function(objDate) {
+	this._date = null;
+	
+    if( objDate ) {
+        if( objDate instanceof Date ) {
+            this._date = objDate;
+        } else if( objDate instanceof NXDate ) {
+            this._date = objDate._objDate;
+        }
+    } else {
+        this._date = new Date();
+    }
+    return this;
+}
+/**
+ * 지정된 년을 더한다.
+ * @param  nOffset 증가 또는 감소할 값
+ * @return NXDate
+ */
+NXDate.prototype.addYear = function(nOffset) {
+    this._date.addYear(nOffset);     return this;
+}
+/**
+ * 지정된 월을 더한다.
+ * @param  nOffset 증가 또는 감소할 값
+ * @return NXDate
+ */
+NXDate.prototype.addMonth = function(nOffset) {
+    this._date.addMonth(nOffset);    return this;
+}
+/**
+ * 지정된 날짜을 더한다.
+ * @param  nOffset 증가 또는 감소할 값
+ * @return NXDate
+ */
+NXDate.prototype.addDate = function(nOffset) {
+    this._date.addDate(nOffset);     return this;
+}
+/**
+ * 지정된 시간을 더한다.
+ * @param  nOffset 증가 또는 감소할 값
+ * @return NXDate
+ */
+NXDate.prototype.addHour = function(nOffset) {
+    this._date.addHour(nOffset);     return this;
+}
+/**
+ * 지정된 분을 더한다.
+ * @param  nOffset 증가 또는 감소할 값
+ * @return NXDate
+ */
+NXDate.prototype.addMinute = function(nOffset) {
+    this._date.addMinutes(nOffset);  return this;
+}
+/**
+ * 지정된 초를 더한다.
+ * @param  nOffset 증가 또는 감소할 값
+ * @return NXDate
+ */
+NXDate.prototype.addSecond = function(nOffset) {
+    this._date.addSeconds(nOffset);  return this;
+}
+/**
+ * 년을 설정한다.
+ * @param  nValue 년
+ * @return NXDate
+ */
+NXDate.prototype.setYear = function(nValue) {
+    this._date.setYear(nValue);  return this;
+}
+/**
+ * 월을 설정한다.
+ * <pre>
+ * Date.setMonth()는 0 ~ 11까지 설정하기에 -1을 보정한다.
+ * </pre> 
+ * @param  nValue 월
+ * @return NXDate
+ */
+NXDate.prototype.setMonth = function(nValue) {
+    this._date.setMonth(nValue-1);   return this;
+}
+/**
+ * 일자를 설정한다.
+ * @param  nValue 일자
+ * @return NXDate
+ */
+NXDate.prototype.setDate = function(nValue) {
+    this._date.setDate(nValue);  return this;
+}
+/**
+ * 시간을 설정한다.
+ * @param  nValue 시
+ * @return NXDate
+ */
+NXDate.prototype.setHour = function(nValue) {
+    this._date.setHours(nValue); return this;
+}
+/**
+ * 분을 설정한다.
+ * @param  nValue 분
+ * @return NXDate
+ */
+NXDate.prototype.setMinute = function(nValue) {
+    this._date.setMinutes(nValue);   return this;
+}
+/**
+ * 초를 설정한다.
+ * @param  nValue 초
+ * @return NXDate
+ */
+NXDate.prototype.setSecond = function(nValue) {
+    this._date.setSeconds(nValue);   return this;
+}
+/**
+ * 밀리 초를 설정한다.
+ * @param  nValue 밀리초 
+ * @return NXDate
+ */
+NXDate.prototype.setMilliseconds = function(nValue) {
+    this._date.setMilliseconds(nValue);   return this;
+}
+/**
+ * 날짜와 시간 값을 설정한다.
+ * @param  nValue 밀리초 값
+ * @return NXDate
+ */
+NXDate.prototype.setTime = function(nValue) {
+    this._date.setTime(nValue);  return this;
+}
+/**
+ * 년도를 반환한다.
+ * @return Integer
+ */
+NXDate.prototype.getYear = function() {
+    return this._date.getYear();
+}
+/**
+ * 월을 반환한다.
+ * <pre>
+ * Date.getMonth()는 0 ~ 11까지 반환하기에 +1을 보정한다.
+ * </pre>
+ * @return Integer
+ */
+NXDate.prototype.getMonth = function() {
+    return this._date.getMonth()+1;
+}
+/**
+ * 일자를 반환한다.
+ * @return Integer
+ */
+NXDate.prototype.getDate = function() {
+    return this._date.getDate();
+}
+/**
+ * 시간을 반환한다.
+ * @return Integer
+ */
+NXDate.prototype.getHour = function() {
+    return this._date.getHours();
+}
+/**
+ * 분을 반환한다.
+ * @return Integer
+ */
+NXDate.prototype.getMinute = function() {
+    return this._date.getMinutes();
+}
+/**
+ * 초를 반환한다.
+ * @return Integer
+ */
+NXDate.prototype.getSecond = function() {
+    return this._date.getSeconds();
+}
+/**
+ * 밀리초를 반환한다.
+ * @return Integer
+ */
+NXDate.prototype.getMilliseconds = function() {
+    return this._date.getMilliseconds();
+}
+/**
+ * 1970년 1월 1일 자정부터 Date 오브젝트 시간 값 사이의 시간을 밀리초 단위로 나타내는 정수 값입니다.
+ * @return Integer
+ */
+NXDate.prototype.getTime = function() {
+    return this._date.getTime();
+}
+/**
+ * 요일 값을 코드 형태로 반환한다.
+ * @return Integer  0:일, 1:월, 2:화, 3:수, 4:목, 5:금, 6:토
+ */
+NXDate.prototype.getDayOfWeek = function() {
+    return this._date.getDay();
+}
+/**
+ * 컴퓨터의 시간과 UTC(협정세계시) 사이의 시간차를 분으로 반환한다.
+ * @return Integer  0:일, 1:월, 2:화, 3:수, 4:목, 5:금, 6:토
+ */
+NXDate.prototype.getTimezoneOffset = function() {
+    return this._date.getTimezoneOffset();
+}
+
+/**
+ * 지정한 형식의 문자열로 변환된 날짜를 반환한다.
+ * <pre>
+ * Javascript의 Date 객체의 포맷과 yyyyMMddhhmmss 포맷을 사용할 수 있다.
+ * 
+ * 1. 파라메타
+ *     MYDATE_FORMAT  DATE_FORMAT  DESCRIPTION
+ *     yyyy,          %Y           4자리 년도
+ *     MM,            %m           월  (01,,12) 
+ *     dd,            %d           일  (01,,31) 
+ *     HH(hh)         %H           시  (00,,23)
+ *     mm,            %M           분  (00,,59)
+ *     ss,            %S           초  (00,,59)
+ * </pre>
+ * @param dateFormat 날짜 포맷 ['%Y%m%d', 기본값]
+ * @param strLocale  출력할 로케일 문자열 (지정하지 않으면 현재 로케일 사용)
+ * @return String
+ * @example
+ *   date.toFormatString("yyyy-MM-dd");         -> 2012-12-31
+ *   date.toFormatString("yyyy-MM-dd hh:mm:ss");-> 2012-12-31 23:59:59
+ *   date.toFormatString("hh:mm:ss");           -> 23:59:59
+ */
+NXDate.prototype.toFormatString = function(format) {
+	var date = this._date,
+        day = date.getDate(),
+        month = date.getMonth() + 1,
+        year = date.getFullYear(),
+        hours = date.getHours(),
+        minutes = date.getMinutes(),
+        seconds = date.getSeconds();
+ 
+    if (!format) {
+        format = "yyyyMMdd";
+    }
+ 
+    format = format.replace("MM", month.toString().replace(/^(\d)$/, '0$1'));
+ 
+    if (format.indexOf("yyyy") > -1) {
+        format = format.replace("yyyy", year.toString());
+    } else if (format.indexOf("yy") > -1) {
+        format = format.replace("yy", year.toString().substr(2, 2));
+    }
+ 
+    format = format.replace("dd", day.toString().replace(/^(\d)$/, '0$1'));
+ 
+    if (format.indexOf("t") > -1) {
+        if (hours > 11) {
+            format = format.replace("t", "pm");
+        } else {
+            format = format.replace("t", "am");
+        }
+    }
+ 
+    if (format.indexOf("HH") > -1) {
+        format = format.replace("HH", hours.toString().replace(/^(\d)$/, '0$1'));
+    }
+ 
+    if (format.indexOf("hh") > -1) {
+        if (hours > 12) {
+            hours -= 12;
+        }
+ 
+        if (hours === 0) {
+            hours = 12;
+        }
+        format = format.replace("hh", hours.toString().replace(/^(\d)$/, '0$1'));
+    }
+ 
+    if (format.indexOf("mm") > -1) {
+        format = format.replace("mm", minutes.toString().replace(/^(\d)$/, '0$1'));
+    }
+ 
+    if (format.indexOf("ss") > -1) {
+        format = format.replace("ss", seconds.toString().replace(/^(\d)$/, '0$1'));
+    }
+    return format;
+}
+
+
+/**
+ * 문자열을 NXDate 객체로 변환한다.
+ * <pre>
+  * 1. 파라메타
+ *   1) dateFormat  : 더 자세한 포맷은 Date.toFormatString() 도움말을 참조한다.
+ *     MYDATE_FORMAT  DATE_FORMAT  DESCRIPTION
+ *     yyyy,           4자리 년도
+ *     MM,             월  (01,,12) 
+ *     dd,             일  (01,,31) 
+ *     HH(hh)          시  (00,,23)
+ *     mm,             분  (00,,59)
+ *     ss,             초  (00,,59)
+ * </pre>
+ * @param dateValue    생성할 날짜 [기본 값은 현재일자] 
+ * @param dateFormat   생성할 날짜 포맷 [기본값은 "yyyyMMdd"]
+ * @return NXDate 객체
+ * @example 현재 일자
+ *   var xdate = NXDate.valueOf();
+ * @example 일자 지정
+ *   var xdate = NXDate.valueOf("20121231");
+ * @example 일자 및 포맷 지정
+ *   var xdate = NXDate.valueOf("2012-12-31", "yyyy-MM-dd");
+ */
+NXDate.valueOf = function(dateValue, dateFormat) {
+    dateValue   = NXCore.empty(dateValue);
+    dateFormat  = NXCore.empty(dateFormat, "yyyyMMdd");
+    
+    var newDate = new Date();
+    if( dateValue && dateFormat ) {
+        var valueIdx = 0;
+        var nValue;
+        for(var i = 0; i < dateFormat.length; i++) {
+            var ch = dateFormat.charAt(i);
+            if( ch == '%' ) {
+                i++;
+                ch = dateFormat.charAt(i);
+                switch(ch) {
+                case 'Y':   // %Y (yyyy)
+                    nValue = parseInt(dateValue.substr(valueIdx,4));
+                    newDate.setYear(nValue); 
+                    valueIdx += 4;
+                    break;      
+				 case 'y':   // %Y (yyyy)  // KW 추가
+                    nValue = parseInt(dateValue.substr(valueIdx,4));
+                    newDate.setYear(nValue); 
+                    valueIdx += 4;
+                    break; 
+                case 'm':   // %m (MM)
+                    nValue = parseInt(dateValue.substr(valueIdx,2));
+                    newDate.setMonth(nValue-1); 
+                    valueIdx += 2;
+                    break;      
+                case 'd':   // %d (dd)
+                    nValue = parseInt(dateValue.substr(valueIdx,2));
+                    newDate.setDate(nValue);    
+                    valueIdx += 2;
+                    break;      
+                case 'H':   // %H (hh)
+                    nValue = parseInt(dateValue.substr(valueIdx,2));
+                    newDate.setHours(nValue);   
+                    valueIdx += 2;
+                    break;      
+                case 'M':   // %M (mm)
+                    nValue = parseInt(dateValue.substr(valueIdx,2));
+                    newDate.setMinutes(nValue); 
+                    valueIdx += 2;
+                    break;  
+                case 'S':   // %S (ss)
+                    nValue = parseInt(dateValue.substr(valueIdx,2));
+                    newDate.setSeconds(nValue); 
+                    valueIdx += 2;
+                    break;
+                /*          
+                case 'q':   // %q (q)
+                    nValue = parseInt(dateValue.substr(valueIdx,1));
+                    newDate.setMonth(4*nValue,1);   
+                    valueIdx += 1;
+                    break;  
+                case 'W':   // %W (ww)
+                    nValue = parseInt(dateValue.substr(valueIdx,2));
+                    newDate.setMonth(0,1);
+                    valueIdx += 2;
+                    break;
+                */
+                default:
+                    valueIdx++;
+                }
+            } else {
+                valueIdx++;
+            }
+        }   
+    }
+    return new NXDate(newDate);
+}
+
+/**
+ * 지정한 달의 날짜를 반환한다.
+ * @param  dateValue    날짜
+ * @param  mydateFormat 포맷 문자열
+ * @return Integer
+ */
+NXDate.dateCount = function(dateValue, dateFormat) {
+    var xdate = NXDate.valueOf(dateValue, dateFormat);
+    return xdate.setDate(1).addMonth(1).addDate(-1).getDate();
+}
+
+/**
+ * 두 날짜의 차이를 반환한다.
+ * @param strDate1
+ * @param strDate2
+ * @param strType    계산할 타입 ['hour', 'day', 'week', 'month', 'year']
+ * @param dateFormat
+ * @return Number
+ * @example
+ *   NXDate.dateDiff("20130101", "20130102", "day"); -> 1
+ */
+NXDate.dateDiff = function(strDate1, strDate2, strType, dateFormat) {
+	dateFormat = NXCore.empty("yyyyMMdd");
+	var d1 = NXDate.valueOf(strDate1, dateFormat)._date;
+	var d2 = NXDate.valueOf(strDate2, dateFormat)._date;
+
+	var nResult = 0;
+	var nDiff = d2.getTime() - d1.getTime();
+	switch(strType) {
+	case 'second':
+		nResult = Math.floor(nDiff/(1000));
+		break;
+	case 'minute':
+		nResult = Math.floor(nDiff/(60*1000));
+		break;
+	case 'hour':
+		nResult = Math.floor(nDiff/(60*60*1000));
+		break;
+	case 'day':
+		nResult = Math.floor(nDiff/(24*60*60*1000));
+		break;
+	case 'week':
+		nResult = Math.floor(nDiff/(7*24*60*60*1000));
+		break;
+	case 'month':
+		var d1Y = d1.getFullYear();
+		var d2Y = d2.getFullYear();
+		var d1M = d1.getMonth();
+		var d2M = d2.getMonth();
+		nResult = (d2M+12*d2Y)-(d1M+12*d1Y);
+		break;
+	case 'year':
+		nResult = d2.getFullYear()-d1.getFullYear();
+		break;
+	}
+	return nResult;
+}
+]]></Script>

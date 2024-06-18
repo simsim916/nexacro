@@ -1,0 +1,1332 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Script type="xscript5.0"><![CDATA[/**
+ * 폼/기타 공통함수를 정의한다.
+ * <pre>r 
+ * 프로젝트에서 필요한 추가 공통함수를 정의한다.
+ * </pre>
+ * @author  tobe
+ */
+
+include "lib::NXCore.xjs";
+include "lib::NXDate.xjs";
+include "lib::NXGrid.xjs";
+include "lib::NXExcel.xjs";
+include "lib::NXMap.xjs";
+include "lib::NXUtil.xjs";
+include "lib::NXTransaction.xjs";
+include "lib::Mobile.xjs";
+
+include "lib::Print.xjs";
+
+/**
+ * Logger 객체 생성
+ */
+logger = new NXLogger(this);
+
+
+/**
+ * 폼 관련 상수 정의
+ */
+CC_FORM_WINID			= "winId";
+CC_FORM_URL				= "formUrl";
+CC_FORM_TITLE			= "formTitle";
+CC_FORM_MENUID			= "menuId";
+CC_FORM_MENU_NAVI		= "menuNavi";
+this.fvs_pgrmid="";      // pdh 추가 
+this.fvs_pgrmtitle="";   // pdh 추가 
+ 
+/** 
+ * 폼 공통 초기화 함수
+ * @param obj {required} 폼 객체
+ * @public
+ */
+this.gf_formOnload = function(obj) {
+
+	//logger.debug("gf_formOnload -> IsMAIN=[{0}], IsPOPUP={1}, IsMDI={2}, IsFrame={3} }", NXCore.isMainForm(obj), NXCore.isPopupForm(obj), NXCore.isMDIForm(obj), NXCore.isFrameForm(obj) );
+	if( NXCore.isMainForm(obj) ) {		
+		if( NXCore.isFrameForm(obj) ) {
+		
+		} else if( NXCore.isMDIForm(obj) ) {
+		          //  pdh  인사에서 alt+f1 을 눌렀을경우 help화면 run. ------------------------
+		          var vs_pgrmid = NXCore.getParameter(obj, CC_FORM_URL);
+				  if (!NXCore.isEmpty(vs_pgrmid)) {
+					  vs_pgrmid = vs_pgrmid.split("::");
+					  vs_pgrmid = vs_pgrmid[1].split(".");
+					  vs_pgrmid = vs_pgrmid[0];
+					  this.fvs_pgrmid=vs_pgrmid;      // 전역변수 
+					  this.fvs_pgrmtitle = NXCore.getParameter(obj, CC_FORM_TITLE);
+					  //if (vs_pgrmid.substr(0,2) == "hr") {	
+					  //	  obj.addEventHandler("onkeydown", this._gf_formOnkeydown, obj);
+					  //}
+					  //else  obj.addEventHandler("onkeydown", this._gf_memo_formOnkeydown, obj);
+					  obj.addEventHandler("onkeydown", this._gf_memo_formOnkeydown, obj);
+
+					}   
+					//------------------------------------------------------------------------------
+			        obj.addEventHandler("onactivate", this._gf_formOnactivate, obj);
+			        obj.addEventHandler("onclose", this._gf_formOnclose, obj);
+		
+		 	     if( NXCore.isSupport(NXCore.MDI) ) {
+			   	    try {
+					    NXCore.getFrame("tabframe").form.ff_MDIOnload(obj);
+				    } catch(err) { }
+		      	 }
+		}
+	}
+	//팝업창 호출시 이벤트 제어
+	if( NXCore.isPopupForm(obj) ) {		
+		obj.addEventHandler("onactivate", this._gf_popupformOnactivate, obj);
+		obj.addEventHandler("onkeydown", this._gf_memo_formOnkeydown, obj);		
+	}
+
+	this._gf_initComponents(obj);
+	// 데이타셋에 있는 한글을 중국어로 바꿈.
+	this._gf_initDatasetMultiLang(obj);   // pdh 추가 
+	
+	// obj.setFocus();
+}
+
+
+/**
+ * 메인 폼을 오픈한다.
+ * <pre>
+ * 1. 파라메타
+ *   1) opened   : MDI 모드에서 동일한 메뉴의 화면이 오픈된 경우 처리방안
+ *     'focus',   해당 Main 폼에 포커스만 설정 (기본값)
+ *     'load', 해당 Main 폼의 포커스 설정 및 ff_load() 함수 호출
+ * </pre>
+ * @param strMenuId {required} Menu Id
+ * @param objArgs {optional} Arguments
+ * @param options {optional} Options [ {opened:'focus(default)|load'}]
+ */
+this.gf_showMain = function(strMenuId, objArgs, options) {
+	options = NXCore.setDefaults(options, {opened:'focus'} );
+	
+	// 1) 메뉴 찾기
+	var nMenuRow = application.gds_menu.findRow("SEQ_KEY_PGRM", strMenuId);
+	if( nMenuRow == -1 ) {
+		return NXCore.alert("메뉴가 존재하지 않습니다. {}", strMenuId, null, "error");
+	}
+	// 2) Screen 정보 찾기
+	var frameData = {};
+		frameData[CC_FORM_WINID] 	= "WIN" + application.gds_menu.getColumn(nMenuRow, "SEQ_KEY_PGRM");
+		frameData[CC_FORM_URL] 		= application.gds_menu.getColumn(nMenuRow, "SCRN_URL");
+		frameData[CC_FORM_TITLE] 	= application.gds_menu.getColumn(nMenuRow, "MENU_NM_KR");
+		frameData[CC_FORM_MENUID]	= application.gds_menu.getColumn(nMenuRow, "SEQ_KEY_PGRM");
+		frameData[CC_FORM_MENU_NAVI]	= application.gds_menu.getColumn(nMenuRow, "MENU_NAVI");
+	
+	if( NXCore.isSupport(NXCore.MDI) && NXCore.getFrame("workframe") ) {
+		var findFrame = NXCore.getFrame("workframe").frames[frameData[CC_FORM_WINID]];
+		if( findFrame != null ) {
+			try {
+				// 전달된 파라메타 재 설정
+				NXCore.setArgument(findFrame, frameData);
+				NXCore.setArgument(findFrame, objArgs);
+				if( options.opened == "focus") {
+					findFrame.form.setFocus();
+				} else {
+					// 2018.04.18 KSM
+					//findFrame.form.div_work.ff_load(findFrame.form);
+					findFrame.form.div_base.div_work.ff_load(findFrame.form);					
+				}
+				NXCore.getFrame("tabframe").form.ff_MDIOnactivate(findFrame.form);
+			} catch(err) {
+				logger.debug(err.message);
+			}
+		
+			return null;
+		}
+
+		var newFrame = new ChildFrame();
+		newFrame.init(frameData[CC_FORM_WINID], 0, 0, -1, -1);	
+		newFrame.set_formurl("frame::FRMWRKM01.xfdl");
+		newFrame.set_autosize(false);
+		newFrame.set_showtitlebar(false);
+		newFrame.set_resizable(true);
+		newFrame.set_scrollbars("none");
+		newFrame.style.set_border("0 solid #1f3253");
+		newFrame.style.set_bordertype("normal 0 0");
+		newFrame.set_dragmovetype("normal");
+		newFrame.set_showcascadetitletext(false);
+		newFrame.style.set_background('white');
+		newFrame.set_openstatus("maximize");
+		newFrame.set_titletext(frameData[CC_FORM_TITLE]);
+
+		// 공통 Arguments 추가
+		NXCore.clearArgument(newFrame);
+		NXCore.setArgument(newFrame, frameData);
+		// 사용자 Arguments 추가
+		NXCore.setArgument(newFrame, objArgs);
+		NXCore.getFrame("workframe").addChild(frameData[CC_FORM_WINID], newFrame);
+		newFrame.show();
+	}
+}
+
+/**
+ * POPUP창을 뛰운다.
+ * <pre>
+ * 1. 파라메타
+ *   1) positions
+ *     팝업 창의 좌표(크기)를 설정한다. left, top을 설정하지 않으면 화면의 중앙에 위치시킨다.
+ *     - left   : 팝업 창의 Screen Left 위치 (기본 값, null)
+ *     - top    : 팝업 창의 Screen Top  위치 (기본 값, null)
+ *     - width  : 팝업 창의 넓이 (필수)
+ *     - height : 팝업 창의 높이 (필수)
+ *     - base   : 
+ *   2) options
+ *      팝업 창의 오픈 시 옵션을 설정한다. 도움말의 showModeless(), showModel() 참조
+ *     - modal    : 모달창 여부
+ *       true,      modelss 창으로 오픈
+ *       false,     modal 창으로 오픈 (기본 값)
+ *     - layered  : layered 여부
+ *       true,      layered 표시
+ *       false,     layered 표시 안함 (기본값)
+ *     - showtitlebar : 타이틀바 표시 여부
+ *       true,          타이틀바 표시(기본값)
+ *       false,         타이틀바 숨김
+ *     - autosize : 폼 로딩 후에 폼의 자체 크기로 변경할 지 여부
+ *       true,      폼 원래 크기로 설정 (기본값)
+ *       false,     설정할 크기로 설정
+ *     - resizable : Resize 여부
+ *       true,       폼 Resize 허용 (기본값)
+ *       false,      폼 Resize 허용하지 않음
+ *     - opened   : 동일한 Modeless창이 오픈되어 있는 경우 처리 방법
+ *       'focus',   포커스 설정 (기본값)
+ *       'load',    ff_load() 함수가 있으면 호출
+ * </pre>
+ * @param strId     {required} unique id
+ * @param strUrl    {required} url
+ * @param positions {required} position [{width:100,height:100}]
+ * @param arguments {optional} argumetns[{key:'value'} ]
+ * @param options   {optinal}  options  [{{modal:true, layered:false, autosize:false, showtitlebar:true, resizable:true, opened:'focus'}}]
+ * @erturn Boolean or Return Value
+ * @example
+ *     var objArguments = {pv_sysId:'0002', pv_sysNm:'Admin'};
+ *     gf_showPopup("ShowObject", "com::ShowObject.xfdl", {width:600, height:500}, objArguments);
+ */ 
+
+this.gf_showPopup = function(strFormId, strUrl, positions, arguments, options) {
+   
+	positions  	= NXCore.setDefaults(positions, {left:0, top:0, width:null, height:null, base:null} );	
+	options 	= NXCore.setDefaults(options, 	{callback : "", modal:true, layered:false, autosize:true, showtitlebar:false, resizable:false, opened:'focus'} );
+    
+    // modal less일경우 nexacro 즉 runtime일경우는 바로 아내로직 안타고 뒤에서 showModeless로 실행함. 
+    if( !options.modal) { // &&  nexacro.Browser != "Runtime" ) {
+        
+        var formObj	= this;
+        var vi_left=vi_height=0;
+        if (nexacro.Browser == "Runtime") {    // runtime일경우 모니터가 2개일경우 스크린 2개의 넗이가 구해지기때문에 아래로직 
+            var nMoniterIndex,strScreenXY,vi_monitor_x;
+            var vi_totscreen=0;
+			if (!NXCore.isEmpty(positions.width)) {
+			  
+			    if (system.monitorcount == 1) {    // 모니터가 한개 일경우 
+			     
+					var vs_temp = system.getScreenResolution(1);
+					var vs_temp1 = vs_temp.split(" ");
+					vi_totscreen = nexacro.toNumber(vs_temp1[0]);
+					vi_left = (nexacro.toNumber(system.getScreenWidth()) - nexacro.toNumber(positions.width) ) / 2;
+					if (vi_left < 0) vi_left =0;
+					var strScreenRes = system.getScreenResolution(1);       // 현재의 모니터 해상도 
+                    strScreenXY = strScreenRes.split(" ");                          // x y 좌표
+					
+			    } 
+			    else {    // 모니터가 1개 이상일경우 (2개 까지 처리가능함)
+			        
+					var nCursorX = system.getCursorX();
+					var nCursorY = system.getCursorY();
+					nMoniterIndex  = system.getMonitorIndex(nCursorX, nCursorY);    // 현재의 모니터 번호 
+					var strScreenRes = system.getScreenResolution(nMoniterIndex);       // 현재의 모니터 해상도 
+                    strScreenXY = strScreenRes.split(" ");                          // x y 좌표
+                    vi_monitor_x=0;
+                    for (var i=1; i <= system.monitorcount; i++) {                      // 현재 모니터의 x 길이를 제외한 다른모니터 x 길이 합 
+						
+						    var vs_temp = system.getScreenResolution(i);
+						    var vs_temp1 = vs_temp.split(" ");
+						    vi_totscreen = vi_totscreen + nexacro.toNumber(vs_temp1[0]);
+						    if ( i == nMoniterIndex) continue;
+						    vi_monitor_x =  vi_monitor_x + nexacro.toNumber(vs_temp1[0]);
+                    }
+                    if (nMoniterIndex == 1)  {   //  1 우축일 경우 좌측 모니터 
+						vi_left = vi_monitor_x + (nexacro.toNumber(strScreenXY[0]) - nexacro.toNumber(positions.width)) / 2;
+                        var r = system.getScreenRect(1); 
+						if (nexacro.toNumber(r.left) < 0 ) {   // 역방향 일경우 
+							vi_left = -1 * vi_monitor_x ;
+							vi_left =  vi_left + (nexacro.toNumber(strScreenXY[0]) - nexacro.toNumber(positions.width)) / 2;
+						}
+						
+					}	 
+                    else {
+                       
+						vi_left = (vi_totscreen - vi_monitor_x - nexacro.toNumber(positions.width) ) / 2;
+					    if (vi_left < 0) vi_left =0;
+					}
+			    }			
+            }
+			if (!NXCore.isEmpty(positions.height)) {
+               var vs_temp1 = nexacro.toNumber(strScreenXY[1]);
+				vi_height = (vs_temp1 - nexacro.toNumber(positions.height) ) / 2;
+				vi_height = nexacro.toNumber(vi_height);
+				if (vi_height < 0) vi_height =0;
+            }
+            
+            if (!options.autosize) {
+                if (nMoniterIndex == 1) {
+                    vi_left=vi_monitor_x + 1;
+                    var r = system.getScreenRect(1);
+                    if (nexacro.toNumber(r.left) < 0 ) {    // 역방향 
+						vi_left = -1 * vi_monitor_x ;
+                    }
+                }
+                else 
+                    vi_left=0;
+                vi_height=0;
+            }
+            
+        }
+        // runtime이 아닐경우 아래 로직 
+        else {
+			if (!NXCore.isEmpty(positions.width)) {
+				vi_left = (system.getScreenWidth() - nexacro.toNumber(positions.width) ) / 2;
+				if (vi_left < 0) vi_left =0;
+			}
+			if (!NXCore.isEmpty(positions.height)) {
+				vi_height = (system.getScreenHeight() - nexacro.toNumber(positions.height) ) / 2;
+				if (vi_height < 0) vi_height =0;
+			}	
+			if (!options.autosize) {
+			   vi_left=0;
+			   vi_height=0;
+			}
+        }
+		var resultForm = application.open(strFormId,   strUrl,  formObj.getOwnerFrame(), 
+			arguments, "showtitlebar=true showstatusbar=true autosize=true resizable=true ", vi_left, vi_height, positions.width,positions.height,formObj);
+	
+	    return resultForm;
+ 	} 
+   
+	if( !positions.base ) {
+		if( NXCore.isFrameForm(this) ) {
+			positions.base = application.mainframe;
+		} else {
+			positions.base = this.getOwnerFrame().form;
+		}
+	}
+	if( positions.width == null || positions.height == null ) {
+		NXCore.alert("e.message", "팝업창의 넓이/높이는 필수 입력 값입니다.");
+		return null;
+	}
+	
+	var formObj		= this;
+	var strFrameId  = strFormId;
+	var strFrameUrl = strUrl;
+	var frameChild = application.popupframes[strFormId];
+
+	if( frameChild != null ) {
+		NXCore.setArgument(frameChild, arguments);
+		frameChild.setFocus();
+		
+		if( options.opened === 'load' ) {
+			try {
+				frameChild.form.ff_load(frameChild.form);
+			} catch(err) { logger.debug(e.message); }
+		}
+		return null;
+	}
+	
+	var newChild = new ChildFrame(strFormId, "absolute", positions.left, positions.top, positions.width, positions.height);
+
+	newChild.set_showtitlebar(options.showtitlebar);
+	newChild.style.set_background("transparent");
+	newChild.set_formurl(strUrl);
+	newChild.set_resizable(options.resizable);
+	//newChild.style.set_border("1 solid blue");
+	newChild.set_autosize(options.autosize);
+	newChild.set_openalign("center middle");
+	newChild.style.set_overlaycolor("transparent"); 
+	
+	NXCore.clearArgument(newChild);
+	NXCore.setArgument(newChild, arguments);
+	
+	if( options.modal ) {
+		var objResult = newChild.showModal(strFrameId, formObj.getOwnerFrame(), arguments, formObj, NXCore.empty(options.callback, ""));
+		formObj.setFocus();
+		return objResult;
+	} else {
+		return newChild.showModeless(strFrameId, formObj.getOwnerFrame(), arguments, formObj, NXCore.empty(options.callback, ""));
+	} 	
+}
+
+/**
+ * Form(Main) activate 공통 이벤트를 처리한다.
+ * <pre>
+ *   MDI 창이 activate된 이후에 필요한 로직을 처리한다.
+ * </pre>
+ * @param obj {requird} Form
+ * @param e {required} ActivateEventInfo
+ */
+this._gf_formOnactivate = function(obj:Form, e:ActivateEventInfo) {
+	if( NXCore.isSupport(NXCore.MDI) && !NXCore.isFrameForm(obj) && NXCore.getFrame("tabframe") ) {
+		try {
+			NXCore.getFrame("tabframe").form.ff_MDIOnactivate(obj);
+		} catch(err) {
+			logger.debug(err.message);
+		}
+	}
+}
+
+// POPUP창에서 ActivateEvent 실행시 호출
+this._gf_popupformOnactivate = function(obj:Form, e:ActivateEventInfo) {
+
+	if (obj.isValidObject(obj.Static_Title)) {
+		obj.Static_Title.set_tooltiptext(obj.parent.formurl);
+	}
+}
+/**
+ * Form(Main) close 공통 이벤트를 처리한다.
+ * <pre>
+ *   MDI 창이 close된 이후에 필요한 로직을 처리한다.
+ * </pre>
+ * @param obj {requird} Form
+ * @param e {required} CloseEventInfo
+ */
+this._gf_formOnclose = function _gf_formOnclose(obj:Form, e:CloseEventInfo) {
+	if( !NXCore.isFrameForm(obj) && NXCore.getFrame("tabframe") != null ) {
+		try {
+			if ( obj.name == e.fromreferenceobject.name ) {
+				NXCore.getFrame("tabframe").form.ff_MDIOnclose(obj);
+			}
+		} catch(err) { 
+			trace("@"+err.message);
+			//logger.debug("naiv 프레임에 ff_MDIOnclose() 함수가 없습니다."); 
+		}
+	}
+}
+
+/**
+ * MDI(Main)의 openstatus상태에 따른 titlebar 처리.
+ */
+this._gf_formOnsyscommand = function _gf_formOnsyscommand(obj, e) {
+	if(e.systemcommand == "minimize" ) {
+		return false;
+	} else if( e.systemcommand == "maximize" && NXCore.getFrame("workframe") ) {
+		var childFrames = NXCore.getFrame("workframe").frames;
+		for(var i = 0;i  < childFrames.length; i++) {
+			childFrames[i].set_showtitlebar(false);
+		}
+	} else if( e.systemcommand == "restore" && NXCore.getFrame("workframe") ) {
+		
+	}
+}
+
+/** 
+ * 폼 내의 컴포넌트에 대해서 공통이벤트를 설정한다.
+ * @param formObj 폼 객체
+ */
+this._gf_initComponents = function(formObj) {
+	try {
+
+		var arrCpnt  = formObj.components;
+		var nCpntCnt = arrCpnt.length;
+		for ( var i = 0; i < nCpntCnt; i++ ) {
+			if ( application.gv_lang != "KR" ) {
+				this._gf_setMultilanguage(arrCpnt[i]);
+			}
+			switch(NXCore.typeof(arrCpnt[i])) {
+				case 'tab':	this._gf_initComponents(arrCpnt[i]);	break;
+				case 'div':
+				case 'tabpage':
+					if( NXCore.isEmpty(arrCpnt[i].url) ) {
+						this._gf_initComponents(arrCpnt[i]);
+					}
+					break;
+				case 'grid':
+					arrCpnt[i].addEventHandler("onheadclick", this._gf_gridOnheadclick, formObj);
+					
+					arrCpnt[i].addEventHandler("onkeyup", this._gf_gridOnkeydown, formObj);
+					
+					var dsObj = NXCore.find(arrCpnt[i].binddataset, arrCpnt[i].parent);
+					if( dsObj ) {
+						NXCore.setArgument(dsObj, {bindgrid:arrCpnt[i]});
+						dsObj.addEventHandler("onload", this._gf_gridOnloadDataset, formObj);
+					}
+					//마우스좌측버튼 + ctrl 키입력시 복사
+					arrCpnt[i].addEventHandler("onlbuttondown", this._gf_gridOnlbuttondown, formObj, arrCpnt[i].binddataset);
+						//마우스우측버튼 + alt 키입력시 블럭지정
+					arrCpnt[i].addEventHandler("onrbuttondown", this._gf_gridOnrbuttondown, formObj, arrCpnt[i].binddataset);
+					
+					//마우스이동시 한국어 표시
+					//2015.11.18 변환시 tooltip에 저장으로 변경
+//					arrCpnt[i].addEventHandler("onmousemove", this._gf_gridOnmousemove, formObj);
+					//그리드에서 포커스에 따라 boarder 표시
+					arrCpnt[i].addEventHandler("onkillfocus", this._gf_gridOnkillfocus, formObj);
+					arrCpnt[i].addEventHandler("onsetfocus", this._gf_gridOnsetfocus, formObj);
+					break;
+					
+				case 'combo' :	
+					if ( (arrCpnt[i].name).indexOf("cbo_comm_") != -1 ) {
+						this._gf_initCommCombo(arrCpnt[i]);
+					}
+
+					//arrCpnt[i].addEventHandler("onkeydown", this._gf_comboOnkeydown, formObj);
+					arrCpnt[i].addEventHandler("onkeyup", this._gf_comboOnkeydown, formObj);
+					
+					break;
+
+				case 'edit' :	
+					arrCpnt[i].addEventHandler("onkeyup", this._gf_editOnkeydown, formObj);
+					arrCpnt[i].addEventHandler("onkillfocus", this._gf_onkillfocus, formObj);
+					break;
+				// pdh 추가 
+				case 'maskedit' :	
+					arrCpnt[i].addEventHandler("onkeyup", this._gf_maskeditOnkeydown, formObj);
+					break;
+				case 'calendar' :	
+					arrCpnt[i].addEventHandler("onkeyup", this._gf_calendarOnkeydown, formObj);
+					break;
+				case 'static' :
+					if ( (arrCpnt[i].name).indexOf("_req") != -1 ) {
+						var oldText = arrCpnt[i].text;
+						arrCpnt[i].set_usedecorate(true);
+						arrCpnt[i].set_text("<b v='true'><ff v='verdana'><fc v='red'>*</fc></ff></b>"+oldText);
+					}
+					
+					//마우스이동시 한국어 표시
+//					arrCpnt[i].addEventHandler("onmousemove", this._gf_staticOnmousemove, formObj);				
+					break;
+				default :
+					break;
+				
+			}
+		}
+	} catch(err) {}
+}
+
+
+/** 
+ * 폼 내의 컴포넌트에 중 공통으로 사용하는 Combo에 대해서 binding
+ * @param obj Combo 객체
+ */
+this._gf_initCommCombo = function(obj) {
+	try {
+		var arg = (obj.name).split("_")[3];
+		
+		var ds = this.objects["_ds_"+obj.name];
+		if ( !this.isValidObject[ds] ) {
+			ds = new Dataset();
+			ds.set_name("_ds_"+obj.name);
+			this.addChild(ds.name, ds);
+		} else {
+			ds.clear();
+		}
+		
+		var vs_arg = "_ds_"+obj.name+":"+arg;
+		this.gf_combo_create(vs_arg, obj.name,"_gf_initCommComboCallback");
+		
+		NXCore.setArgument(this, obj.name, obj);
+		
+	} catch (e) {
+		logger.debug(e.message);
+	}
+}
+
+
+/** 
+ * 공통으로 사용하는 Combo에 대해서 binding하기 위한 transaction callback
+ */
+this._gf_initCommComboCallback = function(sSvcID, sErrCd) {
+	var obj = NXCore.getArgument(this, sSvcID);
+		obj.set_innerdataset("_ds_"+obj.name);
+		obj.set_codecolumn("RFGUB");
+		obj.set_datacolumn("RFNA1");
+		obj.set_index(0);
+}
+
+
+/** 
+ * 다국어 설정
+ * @param obj components
+ */
+this._gf_setMultilanguage = function(obj) {
+	if ( NXCore.typeof(obj) == "grid" ) {
+		var objGrd = obj;
+
+ 		var vs_Format = eval(objGrd).getFormatString();
+ 		var vs_FormatString = vs_Format.split('<Format id="');
+ 		var vs_Pos,vs_FormatId,vs_FormatDefault;
+ 		
+ 		//첫번째값에는 Formats 값이 들어감으로 두번째 배열부터 시작
+ 		for (var j=1;j<vs_FormatString.length;j++) {
+			vs_Pos = vs_FormatString[j].indexOf('"');
+			vs_FormatId = vs_FormatString[j].substr(0,vs_Pos);
+			//default format 적용
+			if (j == 1) {
+				vs_FormatDefault = vs_FormatId;
+				for ( var i=0; i<objGrd.getCellCount("head"); i++ ) {
+					var oldText = objGrd.getCellProperty("head", i, "text");
+					if (NXCore.isEmpty(oldText)) continue;
+					var nRow = application.gds_language.findRow("META_CODE", oldText.replace(/\s/gi, ''));
+					if ( nRow > 0 ) {
+						var newText = application.gds_language.getColumn(nRow, "META_NAME");
+						if (!NXCore.isEmpty(newText)) {
+							objGrd.setCellProperty("head", i, "text", newText);
+							if (application.gvs_lang_tooltip == 'Y') {
+								objGrd.setCellProperty("head", i, "tooltiptext", oldText);	//tooltiptext setting
+							}
+						}
+					}
+					// 2016.03.21 KSM
+					// this.gf_set_trans_result( oldText.replace(/\s/gi, ''));					
+				}
+				// body에 있는 text 한글을 conv 한다.  pdh  
+				for ( var i=0; i < objGrd.getCellCount("body"); i++ ) {
+				    var oldText = objGrd.getCellProperty("body", i, "text");
+ 				 if (NXCore.isEmpty(oldText)) continue;
+				if (oldText.length >= 5) 
+						if (oldText.substr(0,5) == 'bind:') continue;
+					var vs_newText = this._gf_body_han_conv(oldText, objGrd, i); 
+					objGrd.setCellProperty("body", i, "text", vs_newText);
+				}             
+                // body에 있는 expr 한글을 conv 한다.  pdh  
+				for ( var i=0; i < objGrd.getCellCount("body"); i++ ) {
+					var oldText = objGrd.getCellProperty("body", i, "expr");
+					if (NXCore.isEmpty(oldText)) continue;
+					if (oldText.length >= 5) 
+						if (oldText.substr(0,5) == 'bind:') continue;
+					var vs_newText = this._gf_body_han_conv(oldText, objGrd, i); 
+					objGrd.setCellProperty("body", i, "expr", vs_newText);
+				} 
+			}
+			else {
+				objGrd.setFormat(vs_FormatId);
+				for ( var i=0; i<objGrd.getCellCount("head"); i++ ) {
+					var oldText = objGrd.getCellProperty("head", i, "text");
+					if (NXCore.isEmpty(oldText)) continue;
+					var nRow = application.gds_language.findRow("META_CODE", oldText.replace(/\s/gi, ''));
+					if ( nRow > 0 ) {
+						var newText = application.gds_language.getColumn(nRow, "META_NAME");
+						if (!NXCore.isEmpty(newText)) {
+							objGrd.setCellProperty("head", i, "text", newText);
+							if (application.gvs_lang_tooltip == 'Y') {
+								objGrd.setCellProperty("head", i, "tooltiptext", oldText);	//tooltiptext setting
+							}
+						}
+					}
+				}
+				// body에 있는 text 한글을 conv 한다.  pdh  
+				for ( var i=0; i < objGrd.getCellCount("body"); i++ ) {
+				    var oldText = objGrd.getCellProperty("body", i, "text");
+ 				 if (NXCore.isEmpty(oldText)) continue;
+				if (oldText.length >= 5) 
+						if (oldText.substr(0,5) == 'bind:') continue;
+					var vs_newText = this._gf_body_han_conv(oldText, objGrd, i); 
+					objGrd.setCellProperty("body", i, "text", vs_newText);
+				}             
+                // body에 있는 expr 한글을 conv 한다.  pdh  
+				for ( var i=0; i < objGrd.getCellCount("body"); i++ ) {
+					var oldText = objGrd.getCellProperty("body", i, "expr");
+					if (NXCore.isEmpty(oldText)) continue;
+					if (oldText.length >= 5) 
+						if (oldText.substr(0,5) == 'bind:') continue;
+					var vs_newText = this._gf_body_han_conv(oldText, objGrd, i); 
+					objGrd.setCellProperty("body", i, "expr", vs_newText);
+				} 
+			}
+		}
+		//default format 설정
+		if (vs_FormatString.length > 1) objGrd.setFormat(vs_FormatDefault);
+		
+// 	처음 소스	
+// 		for ( var i=0; i<objGrd.getCellCount("head"); i++ ) {
+// 			var oldText = objGrd.getCellProperty("head", i, "text");
+// 			if (NXCore.isEmpty(oldText)) continue;
+// 			var nRow = application.gds_language.findRow("META_CODE", oldText.replace(/\s/gi, ''));
+// 			if ( nRow > 0 ) {
+// 				var newText = application.gds_language.getColumn(nRow, "META_NAME");
+// 				if (!NXCore.isEmpty(newText)) {
+// 					objGrd.setCellProperty("head", i, "text", newText);
+// 				}
+// 			}
+//		}
+	}
+	else if (NXCore.typeof(obj) == 'tab') {
+		var objTab = obj;
+		var vs_tabpage = objTab.components;
+		for ( var i=0; i<vs_tabpage.length; i++ ) {
+			var oldText = eval("objTab."+vs_tabpage[i].name+".text");
+ 			if (NXCore.isEmpty(oldText)) continue;
+ 			var nRow = application.gds_language.findRow("META_CODE", oldText.replace(/\s/gi, ''));
+ 			if ( nRow > 0 ) {
+ 				var newText = application.gds_language.getColumn(nRow, "META_NAME");
+ 				if (!NXCore.isEmpty(newText)) {
+ 					eval("objTab."+vs_tabpage[i].name+".set_text('"+newText+"')");
+					if (application.gvs_lang_tooltip == 'Y') {
+						eval("objTab."+vs_tabpage[i].name+".set_tooltiptext('"+oldText+"')");
+					}
+ 				}
+ 			}
+			// 2016.03.21 KSM
+			//this.gf_set_trans_result( oldText.replace(/\s/gi, '')); 			
+ 		}
+	}
+	else {
+		if ( obj.hasOwnProperty("text")) {
+			if ( obj.hasOwnProperty("innerdataset") ) {
+				if ( obj.innerdataset == obj.name+"_innerdataset") {
+					var ds = obj._innerdataset;
+					for ( var k=0; k<ds.rowcount; k++ ) {
+						var oldText = ds.getColumn(k, "datacolumn");
+						if (NXCore.isEmpty(oldText)) continue;
+						var nRow = application.gds_language.findRow("META_CODE",oldText.replace(/\s/gi, ''));
+						if ( nRow > 0 ) {
+							var newText = application.gds_language.getColumn(nRow, "META_NAME");
+							if (!NXCore.isEmpty(newText)) {
+								ds.setColumn(k, "datacolumn", newText);
+							}
+						}
+						// 2016.03.21 KSM
+						// this.gf_set_trans_result( oldText.replace(/\s/gi, ''));					
+					}
+				}
+			}
+			else {
+				var oldText = obj.text;
+				var nRow = application.gds_language.findRow("META_CODE",oldText.replace(/\s/gi, ''));
+				if ( nRow > 0 ) {
+					var newText = application.gds_language.getColumn(nRow, "META_NAME");
+					if (!NXCore.isEmpty(newText)) {
+						obj.set_text(newText);
+						if (application.gvs_lang_tooltip == 'Y') {
+							obj.set_tooltiptext(oldText);	//tooltiptext setting
+						}
+					}
+				}
+				// 2016.03.21 KSM
+				// this.gf_set_trans_result( oldText.replace(/\s/gi, ''));					
+			}
+		}
+	}
+}
+// body 의 한글 소계 대계 등 convert
+
+this._gf_body_han_conv = function (oldText, objGrd, arg_indx)
+{
+	var va_ori_han = [];
+	var va_conv_han = [];
+	var vi_first_idx ,vi_second_idx;
+	var vi_inc=-1;
+	var vs_chk;
+	var vs_ori_text = oldText;
+	//  ' 와 ' 사이의 글자를 추출한다. 
+	for (var i=0; i < vs_ori_text.length; i++) {
+	    vi_first_idx = oldText.indexOf("'", i);
+	    if (vi_first_idx < 0) break;
+	    vi_second_idx = oldText.indexOf("'",vi_first_idx+1 );
+	    if (vi_second_idx < 0) break;
+	    vi_inc = vi_inc + 1;
+	    va_ori_han [vi_inc] = vs_ori_text.substr(vi_first_idx +1, vi_second_idx - vi_first_idx - 1);
+	    i = vi_second_idx + 1;
+   }
+	//  " 와 " 사이의 글자를 추출한다. 
+	for (var i=0; i < vs_ori_text.length; i++) {
+	    vi_first_idx = oldText.indexOf('"', i);
+	    if (vi_first_idx < 0) break;
+	    vi_second_idx = oldText.indexOf('"',vi_first_idx+1 );
+	    if (vi_second_idx < 0) break;
+	    vi_inc = vi_inc + 1;
+	    va_ori_han [vi_inc] = vs_ori_text.substr(vi_first_idx +1, vi_second_idx - vi_first_idx - 1);
+	    i = vi_second_idx + 1;
+   }
+   // 위에서 추출한 글자로 중국어등 다국어를 찾는다. 
+   for (var i=0; i < va_ori_han.length; i++) {
+		var nRow = application.gds_language.findRow("META_CODE",va_ori_han[i].replace(/\s/gi, ''));
+		if ( nRow >= 0 ) {
+			var newText = application.gds_language.getColumn(nRow, "META_NAME");
+			if (!NXCore.isEmpty(newText)) {
+				va_conv_han [i] = newText;
+			}
+		}
+   }
+   //  치환 한다. 
+   for (var i=0; i < va_conv_han.length; i++) {
+		if (NXCore.isEmpty(va_conv_han[i])) continue;
+		vs_ori_text = this.gf_Replace(vs_ori_text, va_ori_han[i], va_conv_han[i]);
+   }
+   return vs_ori_text;
+}
+
+/**
+ * Grid headclick 공통 이벤트를 처리한다.
+ * <pre>
+ *   - sort, check 기능을 제공한다.
+ *   - 그리드에서 기능을 제거하려면  NXGrid.removeAction(grdOut,"sort,check");
+ * </pre>
+ * @param obj {requird} Grid
+ * @param e {required} Grid Click EventInfo
+ * @return boolean
+ */
+this._gf_gridOnheadclick = function(obj:Grid, e:GridClickEventInfo) {
+	return NXGrid.sortOrCheck(obj, e.cell);
+	//return NXGrid.showContextMenu(obj, e);
+}
+
+/**
+ * Grid.binddataset의 Onload 이벤트를 처리한다.
+ * <pre>
+ *  - 그리드에 바인딩된 데이터셋이 로딩될 될경우 정렬 마크를 제저한다.
+ * </pre>
+ * @param obj:Dataset
+ * @param e:DSLoadEventInfo 
+ */
+this._gf_gridOnloadDataset = function(obj:Dataset, e:DSLoadEventInfo) {
+	var objGrid = NXCore.getArgument(obj, "bindgrid");
+	if( objGrid ) {
+		switch(e.reason) {
+			case Dataset.REASON_LOAD:
+				NXGrid.unsort(objGrid);
+				NXGrid.unfilter(objGrid);
+//				alert(this.lookupFunc("this.parent.parent._gf_gridSummary_conver"));
+                if (objGrid.parent.parent == '[object Tab]')
+					this.parent.parent._gf_gridSummary_conver(objGrid);      // pdh 추가  summary band의 한글 컨버젼 
+				else //this._gf_gridSummary_conver(objGrid);      // pdh 추가  summary band의 한글 컨버젼 
+				{
+					try {
+							this._gf_gridSummary_conver(objGrid);      		// pdh 추가  summary band의 한글 컨버젼
+						}
+					catch(err)
+						{
+							this.parent._gf_gridSummary_conver(objGrid);	// pdh 추가  summary band의 한글 컨버젼
+						}
+				}					
+		}
+	}
+}
+//-------------------------------------------
+// pdh  summary band 한글 conversion  
+//-------------------------------------------
+this._gf_gridSummary_conver = function(objGrd) {
+    
+	if ( application.gv_lang == "KR" ) return;
+
+    if (objGrd.getCellCount("summ") == 0) return;      // summary가 없으면 return;
+    
+	for ( var i=0; i<objGrd.getCellCount("summ"); i++ ) {
+		var oldText = objGrd.getCellProperty("summ", i, "text");
+		if (NXCore.isEmpty(oldText)) continue;
+        var newText = oldText.replace(/\s/gi, '');   // space 제거 
+        // 한글만 추출함. 
+        var vs_han=vs_newText=vs_change="";     // vs_han은 순수 한글 ; vs_newText에는 한글부분만 zzzz; vs_change에는 zzzz만  
+        for (var j=0; j < newText.length; j++) {
+            if (this._gf_han_chk(newText.substr(j,1)) ) {   // 한글이냐
+				vs_han += newText.substr(j,1);
+				vs_newText += "zzz";
+				vs_change += "zzz";
+			}	
+		    else {
+			    vs_newText += newText.substr(j,1);
+			}    	
+        } 
+
+		var nRow = application.gds_language.findRow("META_CODE", vs_han);   // 한글부분만 
+		if ( nRow > 0 ) {
+			var newText = application.gds_language.getColumn(nRow, "META_NAME");
+			if (!NXCore.isEmpty(newText)) {
+			    newText = this.gf_Replace(vs_newText,vs_change,newText); // zzzzz을 한글로 바꿈.
+				objGrd.setCellProperty("summ", i, "text", newText);
+				if (application.gvs_lang_tooltip == 'Y') {
+					objGrd.setCellProperty("summ", i, "tooltiptext", oldText);	//tooltiptext setting
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Grid keydown 공통 이벤트를 처리한다.
+ * <pre>
+ *   - copy, paste, undo 기능을 제공한다.
+ *   - 그리드에서 기능을 제거하려면 NXGrid.removeAction(grdOut,"copy,paste,undo");
+ * </pre>
+ * @param obj {requird} Grid
+ * @param e {required} Grid Click EventInfo
+ * @return boolean
+ */
+this._gf_gridOnkeydown = function(obj:Grid, e:KeyEventInfo) {
+
+	var vs_id = this.getOwnerFrame().id;
+	
+    if (e.keycode == 27) 
+    {    // ESC KEY를 눌렀을경우 처리 
+    
+		if ( (vs_id.substr(0,3) == "WIN"  && vs_id.substr(3,2) < '50' ) || (vs_id.substr(0,2) == 'hr' || vs_id.substr(0,2) == "fa") ) 
+		{
+			var vs_colid =  this.gf_GetCellBind(obj ,obj.currentcol);
+			var vs_DsObj = eval("this." +obj.binddataset);
+			var vi_row = vs_DsObj.rowposition;
+			var vs_data = vs_DsObj.getOrgColumn(vi_row,vs_colid);
+			obj.set_enableredraw(false)
+			obj.moveToNextCell();
+			vs_DsObj.setColumn(vi_row, vs_colid,vs_data);
+			obj.moveToPrevCell();
+			obj.set_enableredraw(true)
+		}
+		else
+		{
+			this.gf_closeMenu();
+		}
+    }
+
+    if (e.shiftKey) {
+       if (e.keycode == NXCore.VK_ENTER) return;
+    }
+	if (e.keycode == NXCore.VK_ENTER) {
+
+	    var vi_currentcol = obj.currentcol;
+	    var vi_row = obj.currentrow;
+        var vs_id = this.getOwnerFrame().id;
+         
+        if ( (vs_id.substr(0,3) == "WIN"  && vs_id.substr(3,2) < '50' ) || (vs_id.substr(0,2) == 'hr' || vs_id.substr(0,2) == "fa") ) {
+			obj.moveToNextCell();
+        }
+        else {
+            
+			this.parent.parent.div_btnList.setFocus();
+			
+			obj.setFocus()
+			obj.clearSelect();
+			
+			var vs_DsObj = eval("this." +obj.binddataset);
+			var vi_tot_row = vs_DsObj.rowcount;		
+			if (vi_tot_row > vi_row + 1) {
+				obj.selectRow(vi_row +1, true);
+				obj.setCellPos(vi_currentcol);
+			}
+			else {
+				obj.selectRow(vi_row, true);
+			    obj.setCellPos(vi_currentcol);
+			}
+        }            
+	} 
+	return NXGrid.copyOrPasteOrUndo(obj, e);
+
+}
+
+/* combo 컴포넌트에서 키입력시 제어 */
+this._gf_comboOnkeydown = function(obj:Combo, e:nexacro.KeyEventInfo) {
+	if (e.keycode == 13) {
+		var vs_objComp = this.getNextComponent(obj);
+		vs_objComp.setFocus();
+		return;
+	}
+}
+/*  edit 컴포넌트에서 키입력시 제어 */
+this._gf_editOnkeydown = function(obj:Edit, e:nexacro.KeyEventInfo) {
+	if (e.keycode == 13) {
+		var vs_objComp = this.getNextComponent(obj);
+		vs_objComp.setFocus();
+		return;
+	}
+}
+/*  editmask 컴포넌트에서 키입력시 제어 */
+this._gf_maskeditOnkeydown = function(obj:Edit, e:nexacro.KeyEventInfo) {
+	if (e.keycode == 13) {
+		var vs_objComp = this.getNextComponent(obj);
+		vs_objComp.setFocus();
+		return;
+	}
+}
+/*  edit box 컴포넌트에서 autoselect 일 경우 다음 탭으로 넘어갈때 선택 해제 */
+this._gf_onkillfocus = function(obj:Edit, e:nexacro.KillFocusEventInfo) {
+	var arrSel = obj.getSelect(); 
+	obj.setCaretPos(arrSel[1]);
+	return;
+}
+/*  calendar 컴포넌트에서 키입력시 제어 */
+this._gf_calendarOnkeydown = function(obj:Calendar, e:nexacro.KeyEventInfo) {
+	if (e.keycode == 13) {
+		var vs_objComp = this.getNextComponent(obj);
+		vs_objComp.setFocus();
+		return;
+	}
+}
+
+/**
+ * Grid mousemove 공통 이벤트를 처리한다.
+ * <pre>
+ *   - tooltip 기능을 제공한다.
+ *   - 그리드에서 기능을 제거하려면  NXGrid.removeAction(grdOut,"tooltip");
+ * </pre>
+ * @param obj {requird} Grid
+ * @param e {required} Grid Click EventInfo
+ * @return boolean
+ */
+/* head(static)에 대한 tooltip 표시 */
+
+/* grid에 대한 tooltip 표시 */
+this._gf_gridOnmousemove = function (obj:Grid, e:GridMouseEventInfo) {
+	if (e.row == -1 && application.gv_lang != 'KR') {
+		var vs_Name = obj.getCellProperty('head',e.cell,'text');
+		if (NXCore.isEmpty(vs_Name)) return;
+		vs_Name = this.gf_get_trans_word_kr(vs_Name);
+		obj.setCellProperty('head',e.cell,'tooltiptext',vs_Name);
+//		return NXGrid.tooltip(obj,e);
+	}
+	return;
+}
+/* static에 대한 tooltip 표시 */
+// this._gf_staticOnmousemove = function(obj:Static, e:nexacro.MouseEventInfo) {
+// 	if (application.gv_lang != 'KR') {
+// 		var vs_Name = obj.text;
+// 		if (NXCore.isEmpty(vs_Name)) return;
+// 		var vs_Name = this.gf_get_trans_word_kr(vs_Name);
+// 		obj.set_tooltiptext(vs_Name);
+// 	}
+// 	return;
+// }
+
+/* grid에 대한 복사기능(마우스좌측버튼+Alt) */
+this._gf_gridOnlbuttondown = function (obj:Grid, e:GridMouseEventInfo) {
+	var strClipboard = "";
+ 	if(e.altKey) {
+		if (obj.selecttype == "multiarea") {
+			var nAreaStartRow = obj.selectstartrow;
+			var nAreaEndRow = obj.selectendrow;
+			var nAreaStartCol = obj.selectstartcol;
+			var nAreaEndCol = obj.selectendcol;
+
+			nAreaStartRow = nexacro.toNumber(nAreaStartRow);
+			nAreaEndRow = nexacro.toNumber(nAreaEndRow);
+			nAreaStartCol = nexacro.toNumber(nAreaStartCol);
+			nAreaEndCol = nexacro.toNumber(nAreaEndCol);
+			
+			var nRow;
+			var nCell;
+			var dsObj;
+			var strColID;
+			var strValue;
+			
+
+			for (nRow = nAreaStartRow; nRow <= nAreaEndRow; nRow++) {
+				for (nCell = nAreaStartCol; nCell <= nAreaEndCol; nCell++) {
+// // 					strColID = obj.getCellProperty("body", nCell, "text");
+// // 					strValue = NXCore.empty(dsObj.getColumn(nRow, strColID.substr(5)));
+// // 					strClipboard = strClipboard + strValue + "\t";
+					strClipboard = strClipboard + obj.getCellText(nRow,nCell) + "\t";
+				}
+
+				strClipboard = strClipboard.substr(0, strClipboard.length-1); // cell의 마지막 \t 는 삭제 한다. 
+				strClipboard = strClipboard + "\n";
+			}
+			strClipboard = strClipboard.substr(0, strClipboard.length -1);     // 마지막로우의 \n은 삭제한다.
+			system.setClipboard("CF_TEXT", strClipboard);
+			application.gv_clipboard = strClipboard;
+			
+			obj.set_selecttype("row")
+		}
+		else {
+			strClipboard = obj.getCellText(e.row,e.cell);
+			if (NXCore.isEmpty(strClipboard)) return;
+			application.gv_clipboard = strClipboard;	//IE외 사용자를 위하여 글로벌변수에 저장하여 Ctrl+V시 클립보드 및 변수에 있는 내용을 붙여넣기 함
+			system.setClipboard("CF_TEXT", strClipboard);
+		}
+/*		mgb 2017.03.24
+		var vs_dataset = obj.binddataset;
+// 		var vs_Column = this.gf_GetCellBind(obj,e.cell,'Body');
+ 		
+ 		var vs_Column = obj.getCellProperty('Body',e.cell,"text").replace("bind:","");
+ 		if (NXCore.isEmpty(vs_Column)) return;
+ 		var vs_Clipboard = eval("this."+vs_dataset+".getColumn(e.row,'"+vs_Column+"')");
+ 		if (NXCore.isEmpty(vs_Clipboard)) return;
+//// 		vs_Clipboard = vs_Clipboard.substr(0, vs_Clipboard.length);
+		application.gv_clipboard = vs_Clipboard;	//IE외 사용자를 위하여 글로벌변수에 저장하여 Ctrl+V시 클립보드 및 변수에 있는 내용을 붙여넣기 함
+ 		system.setClipboard("CF_TEXT", vs_Clipboard);		*/
+ 	}
+	return;
+
+
+//  	if(e.altKey) {
+// 		var vs_dataset = obj.binddataset;
+//  		var vs_Column = this.gf_GetCellBind(obj,e.cell,'Body');
+//  		if (NXCore.isEmpty(vs_Column)) return;
+//  		//var vs_Clipboard = eval("this."+vs_dataset+".getColumn(e.row,vs_Column)");
+//  		var vs_Clipboard = obj.getCellValue(e.row,e.cell,0);
+//  		if (NXCore.isEmpty(vs_Clipboard)) return;
+// //// 		vs_Clipboard = vs_Clipboard.substr(0, vs_Clipboard.length);
+// 		application.gv_clipboard = vs_Clipboard;	//IE외 사용자를 위하여 글로벌변수에 저장하여 Ctrl+V시 클립보드 및 변수에 있는 내용을 붙여넣기 함
+//  		system.setClipboard("CF_TEXT", vs_Clipboard);		
+//  	}
+// 	return;
+}
+
+
+
+/* grid에 대한 블럭지정 및 해제(마우스우측버튼+alt) */
+this._gf_gridOnrbuttondown = function (obj:Grid, e:GridMouseEventInfo) {
+ 	if(e.altKey) {
+		if (obj.selecttype == "multiarea") obj.set_selecttype("row");
+		else obj.set_selecttype("multiarea");
+ 	}
+	return;
+}
+// dataset 에 있는 한글을 중국어로 바꿈.( dataset을 추출함)
+this._gf_initDatasetMultiLang = function(obj){
+    if ( application.gv_lang == "KR" ) return;
+	var arrObj = obj.objects; 
+ 	var nobjcnt = arrObj.length;
+ 	if (nobjcnt <= 0) return;
+ 	for (var i=0; i < nobjcnt; i++) {
+	    if (arrObj[i].id.substr(0,3) == 'ds_') { 
+			if (arrObj[i].rowcount == 0) continue;
+			this._gf_initDatasetMultiLanguage(arrObj[i]);
+	   }
+	}
+}
+// dataset에 있는 한글을 다중 언어로 바꿈
+this._gf_initDatasetMultiLanguage = function(dataset){
+   var vi_colcnt = dataset.colcount;
+   var vs_han;
+   for (var i=0; i < dataset.rowcount; i++)
+	   for (var j=0; j < vi_colcnt; j++) {
+		if  (this._gf_han_chk(dataset.getColumn(i,j))) {}   // 한글이면 
+		else continue;
+
+		var oldText = dataset.getColumn(i,j);
+		var nRow = application.gds_language.findRow("META_CODE",oldText.replace(/\s/gi, ''));
+		if ( nRow != -1 ) {
+			var newText = application.gds_language.getColumn(nRow, "META_NAME");
+			dataset.setColumn(i,j,newText);
+		}
+   }
+}
+ 
+this._gf_han_chk= function(arg_stmt)
+{
+	if (NXCore.isEmpty(arg_stmt)) return false;
+
+	for (var i=0;i<arg_stmt.length;i++) {
+		var c = arg_stmt[i].charCodeAt(0);
+
+		if( 0x1100<=c && c<=0x11FF ) return true;
+		if( 0x3130<=c && c<=0x318F ) return true;
+		if( 0xAC00<=c && c<=0xD7A3 ) return true;
+	}
+	
+	return false;
+	
+// 	var c = arg_stmt.charCodeAt(0);
+// 
+// 	if( 0x1100<=c && c<=0x11FF ) return true;
+// 	if( 0x3130<=c && c<=0x318F ) return true;
+// 	if( 0xAC00<=c && c<=0xD7A3 ) return true;
+// 
+// 	return false;
+
+}
+
+
+/**
+ * 화면닫기
+ * @param {object} objForm Form
+ * @param {string} strWindId MDI WindowId
+ *
+ */
+this.gf_closeMenu = function(objForm, strWindId) {
+
+    //   보통 popup에서는 this.close() 를 사용하지만 메인 프로그램을 수정하지 않고 popup을 띠웠을경우에
+    //    기존 프로그램이 this.gf_closeMenu() 로 코딩되어 있어서 이때는 마치 popup을 close하는것처럼 하기위한 로직 
+     //
+
+ for( var idx = application.popupframes.length-1; idx >= 0 ; idx-- ) {
+   if (application.popupframes[idx].id == this.getOwnerFrame().id) {
+    application.popupframes[idx].form.close(objForm);
+    return;
+   } 
+  }
+
+    var vs_del_pop='N';
+    var opengbn=0;
+//      if (application.popupframes.length > 0) {
+//         if ( this.gf_message_chk("121704", "") == "1") {
+//     vs_del_pop='Y';
+//    } 
+//   } //20160816 Alt+W(닫기 단축키) 를 누를때 팝업이 열려 있으면 알림창 후 팝업까지 닫기 추가
+  strWindId = NXCore.empty(strWindId, NXCore.getParameter(this, CC_FORM_WINID));
+  objForm = NXCore.empty(objForm, this);
+  
+  for( var idx = application.popupframes.length-1; idx >= 0 ; idx-- ) {
+    if (application.popupframes[idx].id == objForm.url) {  
+       opengbn = '1';
+    } 
+   }
+   
+   if(opengbn == '1')
+   {
+		if ( this.gf_message_chk("121704", "") == "1") 
+		{
+			vs_del_pop='Y';
+	    } 
+   }
+   
+  
+  if  (vs_del_pop == 'Y') {
+   for( var idx = application.popupframes.length-1; idx >= 0 ; idx-- ) {
+    application.popupframes[idx].form.close(objForm);
+   }
+  }
+   else {   // 취소시  * 을 눌러서 띠운 popup 이 있고 메인에서 그 프로그램을 닫을경우 * 으로 띠운프로그램을 먼저 close한다.
+   for( var idx = application.popupframes.length-1; idx >= 0 ; idx-- ) {
+    if (application.popupframes[idx].id == objForm.url) {  
+       application.popupframes[idx].form.close(objForm);
+    }  
+    else {   // 취소시 자기 프로그래에서 띠운 popup 이 있을경우 먼저 popup을 닫는다.
+     if (application.popupframes[idx].parent.id == strWindId)
+      application.popupframes[idx].form.close(objForm);
+    }  
+   }
+   }
+
+ var oChild = NXCore.getFrame("workframe").removeChild(strWindId);
+  // 2016.07.20 KSM
+  
+  if ( !NXCore.isEmpty(oChild))
+  {
+   var bSucce = oChild.destroy();
+   oChild = null;
+   objForm.close();
+  } else {
+   // POP 현장용.
+   this.parent.parent.close("0");
+   oChild = null;
+   objForm.close();
+  }
+
+ 
+}
+
+
+/**
+ * Hotkey 등록 (COMBTND01에서 설정 변경 2015.11.20)
+ *
+ */
+//  pdh 추가  
+this._gf_formOnkeydown = function(obj:Form, e:nexacro.KeyEventInfo) { 
+
+    if (e.altKey) {
+        if (e.keycode == 112) {
+            var vs_arg = this.fvs_pgrmid + "|" + this.fvs_pgrmtitle + "|" + application.gv_lang;
+            var resultForm = this.gf_showPopup("popup_hr_help",  "hr_co_popu::hr_co_popu_helf_e.xfdl", {width:662, height:482},
+                {    OpenRetv:   'Y',   // popup open 즉시 조회  
+                    MultSelect: 'N',   // MULTI LINE 선택
+                    Argument:   vs_arg 
+                }, {modal:true, layered:true, autosize:false, callback:"ff_AfterPopup_helf"});
+        }
+        //alt + e 입력시(오라클 dbms_output.put_line 값 표시)
+        else if (e.keycode == 69) {
+            NXCore.alert(application.gvs_clipboard);
+        }
+    }
+}
+
+//key 체크
+this._gf_memo_formOnkeydown = function(obj:Form, e:nexacro.KeyEventInfo) 
+{ 
+    if (e.altKey) {
+        //alt + m 입력시(메모 팝업창 호출)
+        /*if (e.keycode == 77) {
+            var vs_arg = '';
+            var resultForm = this.gf_showPopup("popup_memo",  "main::FRAME_MAIN_USERMEMO.xfdl", {width:295, height:285},
+                {    OpenRetv:   'N',   // popup open 즉시 조회  
+                    MultSelect: 'N',   // MULTI LINE 선택
+                    Argument:   vs_arg 
+                }, {modal:false, layered:true, autosize:false, showtitlebar:true,resizable:false,callback:"ff_AfterPopup_memo"});
+        }*/
+        //alt + e 입력시(오라클 dbms_output.put_line 값 표시)
+        if (e.keycode == 69) {
+            NXCore.alert(application.gvs_clipboard);
+        }
+        //alt + f1 입력시 help 팝업창
+        if (e.keycode == 112) {
+			this.btn_help_onclick();
+//             var vs_arg = this.fvs_pgrmid + "|" + this.fvs_pgrmtitle;
+//             var resultForm = this.gf_showPopup("popup_hr_help",  "co_syst::co_syst_help_e.xfdl", {width:662, height:520},
+//                 {    OpenRetv:   'Y',   // popup open 즉시 조회  
+//                     MultSelect: 'N',   // MULTI LINE 선택
+//                     Argument:   vs_arg 
+//                 }, {modal:true, layered:true, autosize:false, callback:"ff_AfterPopup_help"});
+
+		// 2016.04.08 KSM 
+		// 화면 출력기능 : alt + f2 입력시 help 팝업창
+        } else if (e.keycode == 113 ) {
+ 
+			var vs_obj = this.getOwnerFrame().form;
+            if ( NXCore.opener(vs_obj) == null) {   // mdi  일경우
+				var vs_arg =  this.fvs_pgrmtitle ;
+				var resultForm = this.gf_showPopup("popup_print",  "co_popu::co_popu_grid_print_q.xfdl", {width:300, height:150},
+					{	Argument:   vs_arg  ,
+						Form :this.div_base.div_work
+					}, {modal:true, layered:true, autosize:false, callback:"ff_AfterPopup_helf"});
+            }
+            else {    // pop up 일 경우임.
+               var resultForm = this.gf_showPopup("popup_print",  "co_popu::co_popu_grid_print_q.xfdl", {width:300, height:150},
+				{	Argument:  ""  ,
+					Form :this.getOwnerFrame().form
+				}, {modal:true, layered:true, autosize:false, callback:"ff_AfterPopup_helf"});
+				return;
+            }
+         }
+        
+    }
+}
+
+this.ff_AfterPopup_helf = function(strId, obj)
+{
+}
+
+//도움말 버튼 클릭시
+this.btn_help_onclick = function(obj:Button,  e:nexacro.ClickEventInfo)
+{
+	var vs_obj = this.getOwnerFrame().form;
+	var vs_pgrmid = NXCore.getParameter(vs_obj, CC_FORM_URL);
+	if (!NXCore.isEmpty(vs_pgrmid)) {
+		vs_pgrmid = vs_pgrmid.split("::");
+		vs_pgrmid = vs_pgrmid[1].split(".");
+		vs_pgrmid = vs_pgrmid[0];
+		var vs_pgrmtitle = NXCore.getParameter(vs_obj, CC_FORM_TITLE);
+		var vs_arg = vs_pgrmid + "|" + vs_pgrmtitle;
+		
+		// 네오바이오텍 2018.04.27
+		// var resultForm = this.gf_showPopup("popup_hr_help",  "co_syst::co_syst_help_e.xfdl", {width:662, height:520},
+		var resultForm = this.gf_showPopup("popup_hr_help",  "co_syst::co_syst_help_neo_e.xfdl", {width:662, height:240},
+			{    OpenRetv:   'Y',   // popup open 즉시 조회  
+				MultSelect: 'N',   // MULTI LINE 선택
+				Argument:   vs_arg 
+			}, {modal:true, layered:true, autosize:false, callback:"ff_AfterPopup_help"});
+	}
+}
+
+// this._gf_formOnkeydown = function(obj:Form, e:nexacro.KeyEventInfo) {
+// 
+// 
+// 	if (e.altKey &&  application.gds_hot_key.findRow("KEY_VALUE",String.fromCharCode(e.keycode)) >= 0 ) 
+//     {
+// 		var vi_row = application.gds_hot_key.findRow("KEY_VALUE",String.fromCharCode(e.keycode));
+// 		var vs_key_name = application.gds_hot_key.getColumn(vi_row,"KEY_NAME");
+// 		var oBtn = eval("obj.getOwnerFrame().form.div_btnList.btn_" + vs_key_name);
+// 		if ( oBtn.enable && oBtn.visible) {
+// 		   oBtn.click();
+// 		}
+//     }
+// 
+// }
+// 그리드에 포커스을 잃을때
+this._gf_gridOnkillfocus = function(obj:Grid, e:nexacro.KillFocusEventInfo)
+{
+	obj.style.set_border("1 solid #4f74acff,1 solid #c9c6c3ff,1 solid #c9c6c3ff,1 solid #c9c6c3ff");	
+}
+//그리드에 포커스를 얻을때
+this._gf_gridOnsetfocus = function(obj:Grid, e:nexacro.SetFocusEventInfo)
+{
+//	obj.style.set_border("2 solid #1e90ffff");	
+//	obj.style.set_border("1 solid #4f74acff"); //연파랑
+	obj.style.set_border("1 solid #f55f15ff"); //오렌지
+}]]></Script>

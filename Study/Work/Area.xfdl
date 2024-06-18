@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<FDL version="1.5">
+  <TypeDefinition url="..\default_typedef.xml"/>
+  <Form id="dept" left="0" top="0" width="400" height="600" titletext="New Form">
+    <Layouts>
+      <Layout>
+        <Grid id="Grid00" taborder="0" useinputpanel="false" left="6" top="45" width="388" height="548" binddataset="area_list" onload="form_onload">
+          <Formats>
+            <Format id="default">
+              <Columns>
+                <Column size="100"/>
+                <Column size="100"/>
+                <Column size="100"/>
+                <Column size="100"/>
+                <Column size="100"/>
+                <Column size="100"/>
+              </Columns>
+              <Rows>
+                <Row size="24" band="head"/>
+                <Row size="24"/>
+              </Rows>
+              <Band id="head">
+                <Cell text="순번"/>
+                <Cell col="1" text="국가코드"/>
+                <Cell col="2" text="국가명(영문)"/>
+                <Cell col="3" text="지역코드"/>
+                <Cell col="4" text="국가명(한글)"/>
+                <Cell col="5" text="국가명(한문)"/>
+              </Band>
+              <Band id="body">
+                <Cell text="expr:currow+1"/>
+                <Cell col="1" text="bind:AREACD"/>
+                <Cell col="2" text="bind:AREANM"/>
+                <Cell col="3" text="bind:AREA_DTLCD"/>
+                <Cell col="4" text="bind:AREACD_NM_KR"/>
+                <Cell col="5" text="bind:AREACD_NM_CH"/>
+              </Band>
+            </Format>
+          </Formats>
+        </Grid>
+        <Button id="Button00" taborder="1" text="조회" left="217" top="7" width="176" height="33" onclick="select_btn_onClick"/>
+      </Layout>
+    </Layouts>
+    <Objects>
+      <Dataset id="area_head"/>
+      <Dataset id="area_list">
+        <ColumnInfo>
+          <Column id="AREACD" type="STRING" size="2"/>
+          <Column id="AREA_DTLCD" type="STRING" size="2"/>
+          <Column id="AREANM" type="STRING" size="50"/>
+          <Column id="AREACD_NM_KR" type="STRING" size="50"/>
+          <Column id="AREACD_NM_CH" type="STRING" size="50"/>
+        </ColumnInfo>
+      </Dataset>
+    </Objects>
+    <Script type="xscript5.0"><![CDATA[include "lib::common_form.xjs";
+
+this.select_btn_onClick = function(obj:Form, e:nexacro.LoadEventInfo)
+{
+	this.alert("select_btn_onClick 작동");
+	this.ff_Tran("SELECT_LIST");
+} 
+
+
+this.form_onload = function(obj:Form, e:nexacro.LoadEventInfo)
+{
+	this.alert("form_onload 작동");
+	this.ff_load(obj);
+} 
+
+this.ff_load = function(obj) 
+{
+	this.alert("ff_load 작동");
+	this.ff_SetCondition();   // 초기 조건 파라메터 셋팅밍 콤보 셋팅
+} 
+
+this.ff_SetCondition = function()
+{   
+	this.alert("ff_SetCondition 작동");
+	pvs_mode = 'I';
+	this.ff_form_init(pvs_mode);
+}  
+
+this.ff_form_init = function(pvs_mode)
+{
+/*
+	v_SvcAct			= "bi/cust/bi_cust_class_e_test.jsp"; 
+	v_InDataset		= "area_head=ds_Head_List";     // 반드시 기술할것
+	v_OutDataset	= "area_list=output1";  // 반드시 output1으로 기술할것
+	v_Argument		= ""; 	
+*/
+	this.alert("ff_form_init 작동");
+	this.ff_Tran('SELECT_LIST');	
+	
+}
+
+
+/*  */
+this.ff_Tran = function(strSvcId)
+{ 
+	this.alert("ff_Tran 작동");
+	switch (strSvcId)
+	{
+		case "SELECT_LIST" :
+				v_SvcAct			= "bi/cust/bi_cust_class_e_1q.jsp"; 
+			    v_InDataset		= "area_head=ds_Head_List";     // 반드시 기술할것
+			    v_OutDataset	= "area_list=output1";  // 반드시 output1으로 기술할것
+			    v_Argument		= "";  
+			    break;
+	}
+	this.gf_Transaction_Async(strSvcId, v_SvcAct, v_InDataset, v_OutDataset,"ff_Callback");
+}	
+
+
+/*  */
+this.ff_Callback =  function(sSvcID, ErrorCode, ErrorMsg)
+{
+	this.alert("콜백함수 작동");
+	if (ErrorCode < 0) {
+		NXCore.alert(ErrorMsg);
+		return;
+	} 
+	/*
+	switch (sSvcID)
+	{
+        case "SELECT_LIST" :
+			 if (this.area_list.rowcount == 0) 
+			 {
+				this.area_list.clearData();				
+			 }
+		     break;
+	}
+	*/
+}	
+	     
+/*****************************************************************************************
+ * 함  수  명	: 	gf_Transaction_Async
+ * 아규먼트 	: 	strSvcID : 써비비 아이디 예) "SELECT_MASTER"
+ *                  strSvcNm : jsp명         예) Common/sample01_1tr.jsp
+ *                  strInDatasets : in dataset명  예) ds_para=ds_Head 
+ *                  strOutDatasets : out dataset명  예) ds_Master=output1
+ *                  strCallbackFunc : 콜백함수      예) "ff_Callback"
+ * 기      능	: 	트랜잭션 콜METHOD  중 Async 방식으로 호출 
+ *****************************************************************************************/
+this.gf_Transaction_Async = function(strSvcID, strSvcNm, strInDatasets, strOutDatasets, strCallbackFunc) 
+{
+   var sStep = "";
+   
+   var vi_ret;
+   vi_ret =  strSvcNm.indexOf("?");
+   if (vi_ret == -1) {
+       strSvcNm += "?dbconn=0";
+   }
+   else {
+      vi_ret = strSvcNm.indexOf("dbconn=");
+      if (vi_ret >= 0) {}
+      else 
+		 strSvcNm += "&dbconn=0";
+   }
+   this.transaction(strSvcID, "svc::"+this._gf_getSvcHost()+"/" + application.gvs_context + "/jsp/"+strSvcNm, strInDatasets, strOutDatasets,"", strCallbackFunc, true, 2);
+}
+]]></Script>
+  </Form>
+</FDL>

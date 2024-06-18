@@ -1,0 +1,2426 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Script type="xscript5.0"><![CDATA[
+this.gvi_ErrorCode=-1;     // 콜백루틴의 에러코드        싱크트란잭션일경우 사용
+this.gvs_ErrorMsg="";      //// 콜백루틴의 에러메세지    싱크트란잭션일경우 사용
+	
+
+/*****************************************************************************************
+ * 함  수  명	: 	gf_ds_dup_chk
+ * 아규먼트 	: 	arg_ds : 데이타셋 명  예) this.ds_master
+ *                  arg_col : 컬럼명      예) "dept_code@long_name"
+ * 기      능	: 	data set의 내용에서 중복된 값이 존해하는지 check 
+ *                  결과값이 -1이 아니면 중복된 로우값이다. 
+ *****************************************************************************************/
+ this.gf_ds_dup_chk = function(arg_ds, arg_col)                     // dup chk
+{
+	var sa_key,after_sa_key,result;
+	var ll_count,ll_start_1,ll_start_2,ll_dup,ll_loop,ls_status;
+	var array = new Array();
+
+	ll_count = arg_ds.rowcount;
+
+	array = arg_col.split("@");
+
+	for ( ll_start_1 = 0 ; ll_start_1 < ll_count; ll_start_1++ ) {
+		ls_status = arg_ds.getRowType(ll_start_1);
+		if ( ls_status == 2 || ls_status == 4 ) {}   // 추가나 수정된 데이타 
+		else continue;
+		sa_key = "";
+		for ( ll_loop=0; ll_loop < array.length; ll_loop++ ) {
+			sa_key = sa_key + arg_ds.getColumn(ll_start_1,array[ll_loop]);
+		}
+		if ( sa_key == "" ) return ll_start_1;
+		for ( ll_start_2 = 0; ll_start_2 < ll_count; ll_start_2++ ) {
+			if ( ll_start_1 == ll_start_2 ) continue;
+			ls_status = arg_ds.getRowType(ll_start_2);
+			if ( ls_status == 1 || ls_status == 2 || ls_status == 4 ) {}
+			else continue;
+			after_sa_key = "";
+			for ( ll_loop=0; ll_loop < array.length; ll_loop++ ) {
+				after_sa_key = after_sa_key + arg_ds.getColumn(ll_start_2,array[ll_loop]);
+			}
+			if ( after_sa_key == "" ) return ll_start_2;
+			if ( sa_key == after_sa_key ) return ll_start_1;
+		}
+	}
+	return -1;
+}
+/*****************************************************************************************
+ * 함  수  명	: 	gf_cursor_setting
+ * 아규먼트 	: 	gridName : 그리드 명  예) this.grd_master
+ *                  vi_row :  로우 no     예) 4
+ *                  vs_col :  컬럼명      예) "DEPTCODE"
+ * 기      능	: 	그리드에서 몇번째로우의 컬럼에 커저 셋팅
+ *****************************************************************************************/
+
+this.gf_cursor_setting = function(gridName, vi_row, vs_col)
+{
+  gridName.clearSelect();
+  gridName.selectRow(vi_row, true);
+  gridName.setCellPos(gridName.getBindCellIndex("body", vs_col));
+  gridName.setFocus();    // 그리드에 focus 셋팅을 마지막 부분에서 처리 
+}
+
+/*********************************************************************************************
+**  함  수  명        : gf_GetCellBind
+** argument             : obj:Grid	: 그리드 명  예) this.grd_master
+**                        nIdx		: 셀번호 	 예) 5
+**                        strBand	: 		얻고자 하는 Cell의 영역('Head'/'Body'/'Summ'('Summary'))
+** 기능   : 그리드에서 바인드된 컬럼명을 리턴하는 함수(인덱스값을 주면 컬럼값을 RETURN)
+** return description   : 컬럼명
+*********************************************************************************************/
+this.gf_GetCellBind = function(obj:Grid,nIdx,strBand)
+{
+	if (strBand == null)
+		strBand = "Body";
+    var strCol;
+
+
+    strCol = obj.getCellProperty(strBand,nIdx,"text");
+    
+    if (strCol == '') return "";
+    if (NXCore.isEmpty(strCol))
+        return "";
+    
+	var strCol = obj.getCellProperty(strBand,nIdx,"text").replace("bind:","");
+
+	return strCol;
+}
+
+//***************************************************************************//
+//*** Function Name : gf_message_chk (메세지박스를 구성)							**//
+//*** Argument      : Long lmsgcode(메세지코드),String sappendtxt(추가문)  **//
+//*** Return        : Integer (1.성공 2.실패)	
+//    예제 : this.gf_message_chk("140","추가문")
+//***************************************************************************//
+this.gf_message_chk = function(lmsgcode, sappendtxt)
+{
+    var s_msg,s_proc,ls_gbn="",s_msg_txt;
+    var i_rtnv;
+    var ret_value = new Array();
+  
+	var v_SvcAct		= "Common/gf_message_chk_q.jsp";
+	var in_var = "lmsgcode=" + lmsgcode + " lang=" + application.gv_lang;
+	this.gf_Transaction_invar_sync("MSG", v_SvcAct, "", "",in_var, "_ff_Msg_Callback");
+	ret_value  = gvs_ErrorMsg.split("|");
+	s_msg = ret_value[1];
+	s_proc = ret_value[2];
+	ls_gbn = ret_value[3];
+ 
+	if (NXCore.isEmpty(s_msg)) s_msg = ' ';
+
+	// 아규먼트 메세지
+	if (NXCore.isEmpty(sappendtxt)) sappendtxt = ' ';
+	else sappendtxt = '[' + this.gf_get_trans_word(sappendtxt) + ']';
+	
+	if (application.gv_lang == 'KR'){
+		if (s_msg == ' ' && sappendtxt == ' ') s_msg_txt = ' ';
+		else s_msg_txt = " 메 세 지  : ";
+		
+		if  (gvi_ErrorCode < 0 || ret_value == "N") {
+			alert("알 수 없는 메세지 입니다. 전산실에 문의하세요!  " );
+			return 0;
+		}	
+		else if (ls_gbn == 'A') {
+			alert(" 코    드   : "+lmsgcode +"\n"+ 
+				    s_msg_txt + s_msg + sappendtxt + "\n\n" + 
+				  " 처리방안 : "+s_proc );
+			i_rtnv = 1;
+		}
+		else if (ls_gbn == 'Q') {			
+			i_rtnv = confirm(" 코    드   : "+ lmsgcode +"\n"+
+							   s_msg_txt +s_msg + sappendtxt + "\n\n" +
+							 " 처리방안 : "+s_proc);
+			if (i_rtnv) i_rtnv = 1;
+			else i_rtnv = 0;
+		}
+	}
+	else {
+		if (s_msg == ' ' && sappendtxt == ' ') s_msg_txt = ' ';
+		else s_msg_txt = " Messsage    : ";
+		
+		if  (gvi_ErrorCode < 0 || ret_value == "N") {
+			alert("Unknown message. Please contact your computing representative! " );
+			return 0;
+		}	
+		
+		if (ls_gbn == 'A') {
+			alert(" Message No. : "+lmsgcode +"\n"+ 
+ 				    s_msg_txt + s_msg + sappendtxt + "\n\n" + 
+				  " Processeing : "+s_proc );
+			i_rtnv = 1;
+		}
+		else if (ls_gbn == 'Q') {
+			i_rtnv = confirm(" Message No. : "+ lmsgcode +"\n"+
+							 s_msg_txt +s_msg + sappendtxt + "\n\n" +
+							 " Processing  : "+s_proc);
+			if (i_rtnv) i_rtnv = 1;
+			else i_rtnv = 0;
+		}
+	}
+/*    
+    if (application.gv_lang == 'KR') {
+    
+    	var v_SvcAct		= "Common/gf_message_chk_1q.jsp";
+    	var in_var = "lmsgcode=" + lmsgcode;
+        this.gf_Transaction_invar_sync("MSG", v_SvcAct, "", "",in_var, "_ff_Msg_Callback");
+	    ret_value  = gvs_ErrorMsg.split("|");
+	    s_msg = ret_value[1];
+	    s_proc = ret_value[2];
+	    ls_gbn = ret_value[3];
+
+		if (NXCore.isEmpty(s_msg) || s_msg == 'null') {
+			s_msg = ' ';
+		}
+
+	    if (NXCore.isEmpty(sappendtxt)) {
+			sappendtxt = ' ';
+		}
+		else {
+			sappendtxt = '[' + sappendtxt + ']';
+		}
+	    
+	    if (s_msg == ' ' && sappendtxt == ' ')  
+	        s_msg_txt = ' ';
+	    else 
+	        s_msg_txt = " 메 세 지  : ";
+	    
+    	if  (gvi_ErrorCode < 0 || ret_value == "N") {
+    	  	  //NXCore.alert("확 인", "알 수 없는 메세지 입니다. 전산실에 문의하세요!  ", Exclamation! )
+    	  	  alert("알 수 없는 메세지 입니다. 전산실에 문의하세요!  " );
+    	  	  return -1;
+    	 }	
+    	 else
+    		 if (ls_gbn == 'A') {
+//    		 	MessageBox("확 인"," 코    드   : "+String(lmsgcode) +"~n"+&
+//    									 " 메 세 지  : " +s_msg + sappendtxt + "~n~n" +&
+//    									 " 처리방안 : "+s_proc, Information! )
+    		 	alert(" 코    드   : "+lmsgcode +"\n"+ 
+    									 s_msg_txt + s_msg + sappendtxt + "\n\n" + 
+    									 " 처리방안 : "+s_proc );
+    			i_rtnv = 1;
+    		}
+    		else if (ls_gbn == 'Q') {
+//    			i_rtnv = MessageBox("확 인"," 코    드   : "+String(lmsgcode) +"~n"+
+//    									 " 메 세 지  : " +s_msg + sappendtxt + "~n~n" +
+//    									 " 처리방안 : "+s_proc, Question!,  YesNo! )
+    			
+				i_rtnv = confirm(" 코    드   : "+ lmsgcode +"\n"+
+										 s_msg_txt +s_msg + sappendtxt + "\n\n" +
+										 " 처리방안 : "+s_proc);
+				if (i_rtnv) i_rtnv = 1;
+				else i_rtnv = -1;
+    		}		
+     }
+    	
+    if (application.gv_lang == 'CH') {
+    	
+    	 var v_SvcAct		= "Common/gf_message_chk_2q.jsp";
+    	 var in_var = "lmsgcode=" + lmsgcode;
+         this.gf_Transaction_invar_sync("MSG", v_SvcAct, "", "",in_var, "_ff_Msg_Callback");
+	     ret_value  = gvs_ErrorMsg.split("|");
+	     s_msg = ret_value[1];
+	     s_proc = ret_value[2];
+	     ls_gbn = ret_value[3];
+
+		if (NXCore.isEmpty(s_msg) || s_msg == 'null') {
+			s_msg = ' ';
+		}
+
+	    if (NXCore.isEmpty(sappendtxt)) {
+			sappendtxt = ' ';
+		}
+		else {
+			sappendtxt = '[' + sappendtxt + ']';
+		}
+	    
+	    if (s_msg == ' ' && sappendtxt == ' ')  
+	        s_msg_txt = ' ';
+	    else 
+	        s_msg_txt = " Message  : ";
+
+     	  if  (gvi_ErrorCode < 0 || ret_value == "N") {
+   		     //MessageBox("Confirm", "UnKwon Message!  ", Exclamation! )
+   		     	alert( "UnKwon Message!  ");
+   		     return -1;
+   		  }
+   		 else { 
+    		if (ls_gbn == 'A') {
+//    			MessageBox("Confirm"," Message Code   : "+String(lmsgcode) +"~n"+&
+//    									 " Message  : " +s_msg + sappendtxt + "~n" +&
+//    									 "                "+s_proc, Information! )
+				var msg = " Message Code: " + lmsgcode +"\n"+ s_msg_txt + s_msg + sappendtxt + "\n"+
+				                          "                " + s_proc;
+     			alert(msg);
+    			i_rtnv = 1; 
+    		}
+    		else if (ls_gbn == 'Q') {
+    		
+//    			i_rtnv = MessageBox("Confirm"," Message Code   : "+String(lmsgcode) +"~n"+&
+//    									 " Message  : " +s_msg + sappendtxt + "~n" +&
+//    									 "                "+s_proc, Question!,  YesNo! )
+    			
+				i_rtnv = confirm(" Message Code   : "+lmsgcode +"\n"+
+										 s_msg_txt + s_msg + sappendtxt + "\n" +
+										 "                "+s_proc );
+				if (i_rtnv) i_rtnv = 1;
+				else i_rtnv = -1;
+    		}		
+       }	
+   }	*/
+   return i_rtnv;
+  } 
+  
+
+//***************************************************************************//
+//*** Function Name : gf_message_chk_exit (메세지박스를 구성)							**//
+//*** Argument      : Long lmsgcode(메세지코드),String sappendtxt(추가문)  **//
+//*** Return        : Integer (1.성공 2.실패)	
+//    예제 : this.gf_message_chk("140","추가문")
+//***************************************************************************//
+this.gf_message_chk_exit = function(lmsgcode, sappendtxt)
+{
+    var s_msg,s_proc,ls_gbn="",s_msg_txt;
+    var i_rtnv;
+    var ret_value = new Array();
+  
+	var v_SvcAct		= "Common/gf_message_chk_q.jsp";
+	var in_var = "lmsgcode=" + lmsgcode + " lang=" + application.gv_lang;
+	this.gf_Transaction_invar_sync("MSG", v_SvcAct, "", "",in_var, "_ff_Msg_Callback");
+	ret_value  = gvs_ErrorMsg.split("|");
+	s_msg = ret_value[1];
+	s_proc = ret_value[2];
+	ls_gbn = ret_value[3];
+ 
+	if (NXCore.isEmpty(s_msg)) s_msg = ' ';
+
+	// 아규먼트 메세지
+	if (NXCore.isEmpty(sappendtxt)) sappendtxt = ' ';
+	else sappendtxt = '[' + this.gf_get_trans_word(sappendtxt) + ']';
+	
+	if (application.gv_lang == 'KR'){
+		if (s_msg == ' ' && sappendtxt == ' ') s_msg_txt = ' ';
+		else s_msg_txt = " 메 세 지  : ";
+		
+		if  (gvi_ErrorCode < 0 || ret_value == "N") {
+			alert("알 수 없는 메세지 입니다. 전산실에 문의하세요!  " );
+			return 0;
+		}	
+		else if (ls_gbn == 'A') {
+			alert(" 코    드   : "+lmsgcode +"\n"+ 
+				    s_msg_txt + s_msg + sappendtxt + "\n\n" + 
+				  " 처리방안 : "+s_proc );
+			i_rtnv = 1;
+		}
+		else if (ls_gbn == 'Q') {			
+			i_rtnv = confirm(" 코    드   : "+ lmsgcode +"\n"+
+							   s_msg_txt +s_msg + sappendtxt + "\n\n" +
+							 " 처리방안 : "+s_proc);
+			if (i_rtnv) i_rtnv = 1;
+			else i_rtnv = false;
+		}
+	}
+	else {
+		if (s_msg == ' ' && sappendtxt == ' ') s_msg_txt = ' ';
+		else s_msg_txt = " Messsage    : ";
+		
+		if  (gvi_ErrorCode < 0 || ret_value == "N") {
+			alert("Unknown message. Please contact your computing representative! " );
+			return 0;
+		}	
+		
+		if (ls_gbn == 'A') {
+			alert(" Message No. : "+lmsgcode +"\n"+ 
+ 				    s_msg_txt + s_msg + sappendtxt + "\n\n" + 
+				  " Processeing : "+s_proc );
+			i_rtnv = 1;
+		}
+		else if (ls_gbn == 'Q') {
+			i_rtnv = confirm(" Message No. : "+ lmsgcode +"\n"+
+							 s_msg_txt +s_msg + sappendtxt + "\n\n" +
+							 " Processing  : "+s_proc);
+			if (i_rtnv) i_rtnv = 1;
+			else i_rtnv = false;
+		}
+	}
+/*    
+    if (application.gv_lang == 'KR') {
+    
+    	var v_SvcAct		= "Common/gf_message_chk_1q.jsp";
+    	var in_var = "lmsgcode=" + lmsgcode;
+        this.gf_Transaction_invar_sync("MSG", v_SvcAct, "", "",in_var, "_ff_Msg_Callback");
+	    ret_value  = gvs_ErrorMsg.split("|");
+	    s_msg = ret_value[1];
+	    s_proc = ret_value[2];
+	    ls_gbn = ret_value[3];
+
+		if (NXCore.isEmpty(s_msg) || s_msg == 'null') {
+			s_msg = ' ';
+		}
+
+	    if (NXCore.isEmpty(sappendtxt)) {
+			sappendtxt = ' ';
+		}
+		else {
+			sappendtxt = '[' + sappendtxt + ']';
+		}
+	    
+	    if (s_msg == ' ' && sappendtxt == ' ')  
+	        s_msg_txt = ' ';
+	    else 
+	        s_msg_txt = " 메 세 지  : ";
+	    
+    	if  (gvi_ErrorCode < 0 || ret_value == "N") {
+    	  	  //NXCore.alert("확 인", "알 수 없는 메세지 입니다. 전산실에 문의하세요!  ", Exclamation! )
+    	  	  alert("알 수 없는 메세지 입니다. 전산실에 문의하세요!  " );
+    	  	  return -1;
+    	 }	
+    	 else
+    		 if (ls_gbn == 'A') {
+//    		 	MessageBox("확 인"," 코    드   : "+String(lmsgcode) +"~n"+&
+//    									 " 메 세 지  : " +s_msg + sappendtxt + "~n~n" +&
+//    									 " 처리방안 : "+s_proc, Information! )
+    		 	alert(" 코    드   : "+lmsgcode +"\n"+ 
+    									 s_msg_txt + s_msg + sappendtxt + "\n\n" + 
+    									 " 처리방안 : "+s_proc );
+    			i_rtnv = 1;
+    		}
+    		else if (ls_gbn == 'Q') {
+//    			i_rtnv = MessageBox("확 인"," 코    드   : "+String(lmsgcode) +"~n"+
+//    									 " 메 세 지  : " +s_msg + sappendtxt + "~n~n" +
+//    									 " 처리방안 : "+s_proc, Question!,  YesNo! )
+    			
+				i_rtnv = confirm(" 코    드   : "+ lmsgcode +"\n"+
+										 s_msg_txt +s_msg + sappendtxt + "\n\n" +
+										 " 처리방안 : "+s_proc);
+				if (i_rtnv) i_rtnv = 1;
+				else i_rtnv = -1;
+    		}		
+     }
+    	
+    if (application.gv_lang == 'CH') {
+    	
+    	 var v_SvcAct		= "Common/gf_message_chk_2q.jsp";
+    	 var in_var = "lmsgcode=" + lmsgcode;
+         this.gf_Transaction_invar_sync("MSG", v_SvcAct, "", "",in_var, "_ff_Msg_Callback");
+	     ret_value  = gvs_ErrorMsg.split("|");
+	     s_msg = ret_value[1];
+	     s_proc = ret_value[2];
+	     ls_gbn = ret_value[3];
+
+		if (NXCore.isEmpty(s_msg) || s_msg == 'null') {
+			s_msg = ' ';
+		}
+
+	    if (NXCore.isEmpty(sappendtxt)) {
+			sappendtxt = ' ';
+		}
+		else {
+			sappendtxt = '[' + sappendtxt + ']';
+		}
+	    
+	    if (s_msg == ' ' && sappendtxt == ' ')  
+	        s_msg_txt = ' ';
+	    else 
+	        s_msg_txt = " Message  : ";
+
+     	  if  (gvi_ErrorCode < 0 || ret_value == "N") {
+   		     //MessageBox("Confirm", "UnKwon Message!  ", Exclamation! )
+   		     	alert( "UnKwon Message!  ");
+   		     return -1;
+   		  }
+   		 else { 
+    		if (ls_gbn == 'A') {
+//    			MessageBox("Confirm"," Message Code   : "+String(lmsgcode) +"~n"+&
+//    									 " Message  : " +s_msg + sappendtxt + "~n" +&
+//    									 "                "+s_proc, Information! )
+				var msg = " Message Code: " + lmsgcode +"\n"+ s_msg_txt + s_msg + sappendtxt + "\n"+
+				                          "                " + s_proc;
+     			alert(msg);
+    			i_rtnv = 1; 
+    		}
+    		else if (ls_gbn == 'Q') {
+    		
+//    			i_rtnv = MessageBox("Confirm"," Message Code   : "+String(lmsgcode) +"~n"+&
+//    									 " Message  : " +s_msg + sappendtxt + "~n" +&
+//    									 "                "+s_proc, Question!,  YesNo! )
+    			
+				i_rtnv = confirm(" Message Code   : "+lmsgcode +"\n"+
+										 s_msg_txt + s_msg + sappendtxt + "\n" +
+										 "                "+s_proc );
+				if (i_rtnv) i_rtnv = 1;
+				else i_rtnv = -1;
+    		}		
+       }	
+   }	*/
+   return i_rtnv;
+  }
+//-------------------------------------------------------------------------------
+ this._ff_Msg_Callback =  function(sSvcID, ErrorCode, ErrorMsg)
+{
+	gvi_ErrorCode=ErrorCode;     // 콜백루틴의 에러코드        싱크트란잭션일경우 사용
+	gvs_ErrorMsg=ErrorMsg;      //// 콜백루틴의 에러메세지    싱크트란잭션일경우 사용
+ 	if (ErrorCode < 0) {
+		NXCore.alert('CallBack SVCID = ' +sSvcID + '  ErrorCode = ' + ErrorCode + ' MSG = ' + ErrorMsg);
+	}  
+}
+//***************************************************************************//
+//*** Function Name : gf_get_trans_word (한글 중국어)							**//
+//*** Argument      :ls_word  워드  **//
+//*** Return        : Integer (1.성공 2.실패)	
+//    예제 : this.gf_get_trans_word("단위")
+//***************************************************************************//
+this.gf_get_trans_word = function(arg_base_word)
+{
+    var	ls_rtnv;	
+    var	ls_word, ls_baseword, ls_ast;
+    var ls_rtnv=null;
+    var ret_value = new Array();
+    if (application.gv_lang == 'KR') {    // KR
+    	ls_rtnv = arg_base_word.trim(" ");
+    }
+//    else if (application.gv_lang == 'CH') {
+    else {
+		
+		ls_baseword = arg_base_word;
+		if (ls_baseword.substr(0,1) == '*') {
+			ls_ast = '*';
+			ls_word = ls_baseword.substr(1).trim(" ");
+		}
+		else {
+			ls_ast    = '';
+			ls_word = ls_baseword.trim(" ");
+		}
+		ls_word = ls_word.trim(" ");
+		var v_SvcAct		= "Common/gf_get_trans_word_1q.jsp";
+		var in_var = "lsword=" + ls_word + " lang=" + application.gv_lang;
+		this.gf_Transaction_invar_sync("MSG", v_SvcAct, "", "",in_var, "_ff_Msg_Callback");
+		ret_value  = gvs_ErrorMsg.split("|");
+		ls_rtnv = ret_value[1];
+		if  (gvi_ErrorCode < 0 || ret_value == "N") {
+			ls_rtnv = arg_base_word;
+		}	
+		else {
+		   ls_rtnv = ls_ast+ls_rtnv;
+		}
+		// 2016.03.21 KSM
+		//this.gf_set_trans_result( ls_word );		
+	}
+//       }
+//       else {
+//     	  ls_rtnv = arg_base_word;
+//       }
+	return ls_rtnv; 
+}
+//***************************************************************************//
+//*** Function Name : gf_get_trans_word_kr (다국어를 한국어로 변환)							**//
+//*** Argument      :ls_word  워드  **//
+//*** Return        : string
+//    예제 : this.gf_get_trans_word_kr("base")
+//***************************************************************************//
+this.gf_get_trans_word_kr = function(arg_base_word_kr)
+{
+	var	ls_rtnv;	
+	var	ls_word, ls_baseword, ls_ast;
+	var ls_rtnv=null;
+	var ret_value = new Array();
+
+	ls_baseword = arg_base_word_kr;
+	if (ls_baseword.substr(0,1) == '*') {
+		ls_ast = '*';
+		ls_word = ls_baseword.substr(1).trim(" ");
+	}
+	else {
+		ls_ast    = '';
+		ls_word = ls_baseword.trim(" ");
+	}
+	
+	ls_word = ls_word.trim(" ");
+	var v_SvcAct		= "Common/gf_get_trans_word_kr_1q.jsp";
+	var in_var = "lsword=" + ls_word + " lang=" + application.gv_lang;
+	this.gf_Transaction_invar_sync("MSG", v_SvcAct, "", "",in_var, "_ff_Msg_Callback");
+	ret_value  = gvs_ErrorMsg.split("|");
+	ls_rtnv = ret_value[1];
+	if  (gvi_ErrorCode < 0 || ret_value == "N") {
+		ls_rtnv = arg_base_word_kr;
+	}	
+	else {
+	   ls_rtnv = ls_ast+ls_rtnv;
+	}
+
+	return ls_rtnv; 
+}
+//***************************************************************************//
+//*** Function Name : gf_today()							**//
+//    예제 : aa = this.gf_today();
+//    결과 aa는 '20151203'
+//***************************************************************************//
+this.gf_today = function()
+{
+    var ret_value;
+    var v_SvcAct		= "Common/gf_today_1q.jsp";
+    this.gf_Transaction_sync("TODAY", v_SvcAct, "", "","_ff_Msg_Callback");
+    ret_value  = gvs_ErrorMsg;
+    if  (gvi_ErrorCode < 0 ) {
+        ret_value = "";
+    }
+return ret_value; 
+}
+
+//***************************************************************************//
+//*** Function Name : gf_time()							**//
+//    예제 : aa = this.gf_time();
+//    결과 aa는 '180404'
+//***************************************************************************//
+this.gf_time = function()
+{
+    var ret_value;
+    var v_SvcAct		= "Common/gf_time_1q.jsp";
+    this.gf_Transaction_sync("TIME", v_SvcAct, "", "","_ff_Msg_Callback");
+    ret_value  = gvs_ErrorMsg;
+    if  (gvi_ErrorCode < 0 ) {
+        ret_value = "";
+    }
+return ret_value; 
+}
+
+//***************************************************************************//
+//*** Function Name : gf_datetime()							**//
+//    예제 : aa = this.gf_time();
+//    결과 aa는 '20150501 091024'
+//***************************************************************************//
+this.gf_datetime = function()
+{
+    var ret_value;
+    var v_SvcAct		= "Common/gf_datetime_1q.jsp";
+    this.gf_Transaction_sync("DATETIME", v_SvcAct, "", "","_ff_Msg_Callback");
+    ret_value  = gvs_ErrorMsg;
+    if  (gvi_ErrorCode < 0 ) {
+        ret_value = "";
+    }
+return ret_value; 
+}
+
+//***************************************************************************//
+//*** Function Name : gf_addmonths()							**//
+//    예제 : aa = this.gf_addmonths("20150519", -1);
+//    결과 aa는 '20150419'
+//***************************************************************************//
+this.gf_addmonths = function(strDate, numMonth)
+{
+    var objDelete = this.removeChild("ds_addmonths_out_bds");	
+	
+    var ds_addmonths_out_bds = new Dataset;
+    var vi_idx =  this.addChild("ds_addmonths_out_bds", ds_addmonths_out_bds); 
+
+    var vs_sql  = "SELECT TO_CHAR(ADD_MONTHS(TO_DATE('" + strDate +"', 'YYYYMMDD'), " + numMonth + "), 'YYYYMMDD') as DT FROM DUAL ";
+    this.gf_SelectSql_sync("ds_addmonths_out_bds : " + vs_sql , "SELECT","_ff_Msg_Callback");
+
+	if (this.ds_addmonths_out_bds.rowcount == 0)
+		return "";
+	else
+		return this.ds_addmonths_out_bds.getColumn(0,"DT");
+}
+
+//***************************************************************************//
+//*** Function Name : gf_adddays()							**// 
+//    예제 : aa = this.gf_adddays("20150519", -1);
+//    결과 aa는 '20150518'
+//    pdh 수정 
+//***************************************************************************//
+this.gf_adddays = function(strDate, numDay)
+{
+    var vs_temp = strDate;
+    
+    vs_temp = vs_temp.toString().replace(/-/g, "").replace(/\//g, "").replace(/\./g, "").replace(/:/g, "").replace(/ /g, "");    
+	var year = vs_temp.substr(0,4); 
+	var month = vs_temp.substr(4,2);
+	var day = vs_temp.substr(6,2);
+	
+	var objDate2 = new Date(year,nexacro.toNumber(month)-1,day);   // date로 변경
+	objDate2.setDate(objDate2.getDate() + nexacro.toNumber(numDay));
+	return this.gf_toDateString(objDate2,8);
+//      
+//     var objDelete = this.removeChild("ds_adddays_out_bds");	
+//     
+//     var ds_adddays_out_bds = new Dataset;
+//     var vi_idx =  this.addChild("ds_adddays_out_bds", ds_adddays_out_bds); 
+// 
+//     var vs_sql  = "SELECT TO_CHAR(TO_DATE('" + strDate +"', 'YYYYMMDD') + " + numDay + ", 'YYYYMMDD') as DT FROM DUAL ";
+//     this.gf_SelectSql_sync("ds_adddays_out_bds : " + vs_sql , "SELECT","_ff_Msg_Callback");
+// 
+// 	if (this.ds_adddays_out_bds.rowcount == 0)
+// 		return "";
+// 	else
+// 		return this.ds_adddays_out_bds.getColumn(0,"DT");
+}
+//  날자를 string으로 컨버젼 
+this.gf_toDateString= function(aoDate, aiLength)
+{
+	var year  = aoDate.getFullYear();
+	var month = aoDate.getMonth() + 1;   // 1월=0,12월=11이므로 1 더함
+	var day   = aoDate.getDate();
+	var hour  = aoDate.getHours();
+    var min   = aoDate.getMinutes();
+
+    if (("" + month).length == 1) { month = "0" + month; }
+	if (("" + day).length   == 1) { day   = "0" + day;   }
+	if (("" + hour).length  == 1) { hour  = "0" + hour;  }
+    if (("" + min).length   == 1) { min   = "0" + min;   }
+
+	if (aiLength == 8)
+	{
+		return ("" + year + month + day)
+	}
+	else if (aiLength == 12)
+	{
+		return ("" + year + month + day + hour + min)
+	}
+
+	return "";
+}
+//***************************************************************************//
+//*** Function Name : gf_lastday()							**//
+//    예제 : aa = this.gf_lastday("20150519");
+//    결과 aa는 '20150531'
+//***************************************************************************//
+this.gf_lastday = function(strDate)
+{
+     var objDelete = this.removeChild("ds_lastday_out_bds");	
+   var ds_lastday_out_bds = new Dataset;
+    var vi_idx =  this.addChild("ds_lastday_out_bds", ds_lastday_out_bds); 
+
+    var vs_sql  = "SELECT TO_CHAR(LAST_DAY(TO_DATE('" + strDate +"', 'YYYYMMDD')), 'YYYYMMDD') as DT FROM DUAL ";
+    this.gf_SelectSql_sync("ds_lastday_out_bds : " + vs_sql , "SELECT","_ff_Msg_Callback");
+
+	if (this.ds_lastday_out_bds.rowcount == 0)
+		return "";
+	else
+		return this.ds_lastday_out_bds.getColumn(0,"DT");
+}
+
+//***************************************************************************//
+//*** Function Name : gf_datecheck()							**//
+//    예제 : aa = this.gf_datecheck("20150519");
+//    결과 aa는 '20150531'
+//***************************************************************************//
+this.gf_datecheck = function(strDate)
+{
+	var vs_date_org = strDate + "";	
+	var vs_date = this.gf_ToString(parseInt(strDate ));
+
+	if (vs_date_org != vs_date)  return -1;  // 숫자 아님 
+	if (vs_date.length != 8)  return -1;  
+	if (vs_date.substr(4, 2) < '01' || vs_date.substr(4, 2) > '12') return -1;
+	if (vs_date.substr(6, 2) < '01' || vs_date.substr(6, 2) > '31') return -1;
+	if (vs_date.substr(6, 2) == '31') {
+		if (vs_date.substr(4, 2) == '02' || vs_date.substr(4, 2) == '04' || vs_date.substr(4, 2) == '06' || 
+		    vs_date.substr(4, 2) == '09' || vs_date.substr(4, 2) == '11') return -1;
+	}
+	if (vs_date.substr(4, 2) == '02') {
+		if (vs_date.substr(6, 2) < '29') return 1;
+		var vn_year = parseInt(vs_date.substr(0, 4));
+		var vn_yun  = vn_year - nexacro.floor(vn_year / 100, 0) * 100; 
+
+		if (vn_yun == 0 && vs_date.substr(6, 2) > '28')  return -1;    // 100년 평년 
+		vn_yun  = vn_year - nexacro.floor(vn_year / 4, 0) * 4;
+
+		if (vn_yun == 0 && vs_date.substr(6, 2) > '29')  return -1;    // 4년 윤년 
+		if (vn_yun > 0 && vs_date.substr(6, 2) > '28')  return -1;     // 평년  
+	}   
+
+	return 1;
+	
+	//return this.gf_Function_sync ("fun_datecheck", strDate, "FUNCTION","ff_Callback_sync",0);
+}
+ 
+//----------------------------------------------------------------------------
+this.gf_gd_start_end_date = function(ls_ds, ls_start_date, ls_end_date)   // end-날자가 시작일자보다 크거나 같을경우만 정상
+//----------------------------------------------------------------------------
+{
+/*
+* @설  명     :  그리드에서 from to 일자 check to 일자가 크거나 같아야함. 
+            data set의 내용중 시작일과 종료일이 있을경우 종료일이 시작일보다 크거나 같은지 check후
+*           종료일이 작을경우는 해당 로우 no을 return한다.
+* @사용법    : ll_ret = gf_gd_start_end_date(this.ds_master,"start_date","end_date")
+*
+* @파라메터 :
+*  ls_ds : data set    ls_start_date:시작컬럼.     ls_end_date:종료컬럼.  // <----반드시 컬럼이름이어야 합니다.
+*  return    : -1 이면 정상  -1이 아니면 해당 row no에 에러
+*/
+	var ll_cnt,i,ls_start_temp,ls_end_temp;
+	ll_cnt =ls_ds.rowcount;
+	if ( ll_cnt < 1 ) return -1;
+	for ( i=0 ;i< ll_cnt;i++ ) {
+		ls_start_temp = ls_ds.getColumn(i,ls_start_date);
+        ls_end_temp = ls_ds.getColumn(i, ls_end_date);
+		if ( NXCore.isEmpty(ls_start_temp)) {
+			if ( NXCore.isEmpty(ls_end_temp))  continue;
+			else return i;
+		}
+		lb_ret = this.gf_datecheck(ls_start_temp)
+		if ( lb_ret == -1 ) return i
+		lb_ret = this.gf_datecheck(ls_end_temp)
+		if ( lb_ret == -1 ) return i
+		if ( ls_end_temp +""  >= ls_start_temp +"")  continue;
+		else return i;
+	}
+	return -1;
+}
+/**********************************************************************************
+ * Function Name: gfn_Replace()
+ * Description  : 입력된 문자열의 일부분을 다른 문자열로 치환하는 함수
+ * Arguments    : strString 원본 문자열.
+ *               strOld    원본 문자열에서 찾을 문자열.
+ *               strNew    새로 바꿀 문자열.
+ * return       : 대체된 문자열
+ **********************************************************************************/
+this.gf_Replace = function (Val, strOld, strNew)
+{
+	Val = this.gf_ToString(Val);
+	var vs_reg = eval("/" + strOld + "/gi"); 
+	Val = Val.replace(vs_reg, strNew);
+	return Val;
+}
+/*******************************************************************************
+ * Function Name: gfn_ToString
+ * Description  : 입력값을 String으로 변경한다.
+ * Arguments    : Val
+ * Return       : String
+ *******************************************************************************/
+
+this.gf_ToString = function (Val)
+{
+	if (NXCore.isEmpty(Val)) 
+	{
+		return new String();
+	}
+	return new String(Val);
+}
+
+/*******************************************************************************
+ * Function Name: gf_NumToStr
+ * Description  : 입력값을 String으로 변경하고, 숫자앞에 0을 채워준다.
+ * Arguments    : nbr(변환할 숫자), dgt(string 자릿수)
+ * Return       : String
+ *******************************************************************************/
+this.gf_NumToStr = function (nbr, dgt)
+{
+	var vs_str = String(1000000000000000 + nbr);
+	vs_str = "00000" + vs_str.substr(1, 99);
+
+	return vs_str.substr(20 - dgt, dgt);
+}
+
+this.gf_NumToStr2 = function (nbr, dgt)
+{
+	var vs_str = String(1000000000000000 + nbr);
+	vs_str = "000" + vs_str.substr(1, 99);
+
+	return vs_str.substr(20 - dgt, dgt);
+}
+/*******************************************************************************
+ * Function Name: gf_required_stc(obj, arg_vb)
+ * Description  : static field에 필수입력여부 *를 붙이고 안붙이고함.
+ * Arguments1    : ojb    예) this.stc_dept
+ * Arguments2   : true or false    true는 *를 붙힘 예)  true
+ * 예) this.gf_required_stc(this.stc_dept, true);      // 텍스트앞에 * 을 붙힌다 
+ *******************************************************************************/
+
+this.gf_required_stc = function(obj, arg_vb) 
+{
+	var oldText = obj.text;
+	obj.set_usedecorate(true);
+	var i = oldText.lastIndexOf("/b>");
+	if (i > 0) {
+		oldText = oldText.substr(i+3);
+     }
+	if (arg_vb)
+		obj.set_text("<b v='true'><ff v='verdana'><fc v='red'>*</fc></ff></b>"+oldText);
+    else
+		obj.set_text(oldText);
+}
+/*******************************************************************************
+ * Function Name: gf_popup_data(obj)
+ * Description  : 선택 popup 에서 넘어온 자료를 array 로 만들어서 return 한다.
+ * Arguments1   : ojb    예) this.popupdata
+ * 예) this.gf_popup_data(this.popupdata);       
+ *******************************************************************************/
+
+this.gf_popup_data = function(obj)
+{
+
+    if (obj.substr(0, 1) == '0')  return false;  // 자료를 선택하지 않았음 
+
+    var va_arr = new Array();
+// 	for ( var i=0; i<obj.length; i++) {
+// 		if (obj.substr(i, 1) <="0" && obj.substr(i, 1) >= "9")  continue;
+// 		va_arr[0] = obj.substr(0, i + 1);
+// 		va_arr[1] = obj.substr(i + 2, obj.length - i - 2);
+// 
+// 		i=obj.length+999;
+// 	}
+	var va_arr = obj.split("@!@");
+	var vs_cnt=0;
+	if (va_arr.length > 1) vs_cnt = 1;
+	
+    var va_ret = new Array();
+
+//	var va_data = va_arr[1].split("@#@");  // popup 에서 return 한 data ( row ) 
+	var va_data = va_arr[vs_cnt].split("@#@");  // popup 에서 return 한 data ( row ) 
+
+	for ( var i=0; i<va_data.length; i++) {
+		va_ret[i] = new Array();
+		var va_col = va_data[i].split("|");
+		for ( var j=0; j<va_col.length; j++) {
+			va_ret[i][j] = va_col[j];  // data 칼럼 값    
+		}
+	}
+
+	return va_ret;  // data array 값 
+}
+
+/*******************************************************************************
+* Function Name: gf_file_download(arg_path_filename)
+* Description  : 파일 다운로드
+* Arguments1    : arg_filename    예) aaa/bbb/test.jpg
+* 예) this.gf_file_download("aaa/bbb/test.jpg");    
+*******************************************************************************/
+  
+this.gf_file_download = function(arg_path_filename) 
+{
+	var fv_url = "http://" + this._gf_getSvcHost()  + "/fileupdownload"; 
+	var fv_filename;
+		 
+	var vi_idx = arg_path_filename.lastIndexOf("/");
+	if (vi_idx >=0 ) 
+		fv_dir =  "/" + arg_path_filename.substr(0,vi_idx);
+	fv_filename = arg_path_filename.substr(vi_idx+1);
+
+	if (this.FileDownloadbds) {
+		this.FileDownloadbds.destroy();
+	}
+    var fv_filename_ori = fv_filename;    // 뒷 로직에서 사용하기위함.
+    
+	if (application.gv_lang ==  "KR" )  {
+		fv_filename = encodeURIComponent(fv_filename);
+    } 
+    system.execBrowser(fv_url  + fv_dir + "/" + fv_filename);
+    
+    return;
+    
+  // 하위 로직은 저장 하기 위한 로직
+      
+	if(!this.FileDownloadbds) 
+	{ 
+		this.filedownObj = new FileDownload("FileDownloadbds",this); 
+		this.addChild("FileDownloadbds", this.filedownObj); 
+		this.filedownObj.set_downloadfilename(fv_filename_ori);
+
+		//동적으로 이벤트 연결   
+		var vi_1 = this.filedownObj.addEventHandler("onsuccess", this.FileDownloadbds_success, this); 
+
+		this.filedownObj.addEventHandler("onerror", this.FileDownloadbds_error, this); 
+		fv_url = "http://" + this._gf_getSvcHost()  + "/" + application.gvs_context + "/"; 
+		
+		if (application.gv_lang ==  "KR")
+			fv_filename = encodeURIComponent(fv_filename_ori);
+ 
+		this.filedownObj.downloadurl = fv_url + "jsp/Common/file_download_1tr.jsp?path=" + fv_dir + "&fileName=" + fv_filename;
+
+        this.filedownObj.show();
+		var bSucc = this.filedownObj.download();
+	} 
+}
+/*******************************************************************************
+* Function Name: gf_file_download_relatiepath(arg_path_filename)
+* Description  : 파일 다운로드(소스용 파일 다운로드)
+* Arguments1    : arg_filename    예) aaa/bbb/test.jpg
+* 예) this.gf_file_download_relativepath("aaa/bbb/test.jpg");    
+*******************************************************************************/
+  
+this.gf_file_download_relativepath = function(arg_path_filename) 
+{
+	var fv_url = "http://" + this._gf_getSvcHost()  + "/" + application.gvs_context; 
+	var fv_filename;
+		 
+	var vi_idx = arg_path_filename.lastIndexOf("/");
+	if (vi_idx >=0 ) 
+		fv_dir =  "/" + arg_path_filename.substr(0,vi_idx);
+	fv_filename = arg_path_filename.substr(vi_idx+1);
+
+	if (this.FileDownloadbds) {
+		this.FileDownloadbds.destroy();
+	}
+    var fv_filename_ori = fv_filename;    // 뒷 로직에서 사용하기위함.
+    
+	if (application.gv_lang ==  "KR" )  {
+		fv_filename = encodeURIComponent(fv_filename);
+    } 
+	system.execBrowser(fv_url  + fv_dir + "/" + fv_filename);
+    
+    
+//   // 하위 로직은 저장 하기 위한 로직
+//       
+// 	if(!this.FileDownloadbds) 
+// 	{ 
+// 		this.filedownObj = new FileDownload("FileDownloadbds",this); 
+// 		this.addChild("FileDownloadbds", this.filedownObj); 
+// 		this.filedownObj.set_downloadfilename(fv_filename_ori);
+// 
+// 		//동적으로 이벤트 연결   
+// 		var vi_1 = this.filedownObj.addEventHandler("onsuccess", this.FileDownloadbds_success, this); 
+// 
+// 		this.filedownObj.addEventHandler("onerror", this.FileDownloadbds_error, this); 
+// 		fv_url = "http://" + this._gf_getSvcHost()  + "/" + application.gvs_context + "/"; 
+// 		
+// 		if (application.gv_lang ==  "KR")
+// 			fv_filename = encodeURIComponent(fv_filename_ori);
+//  
+// 		this.filedownObj.downloadurl = fv_url + "jsp/Common/file_download_1tr.jsp?path=" + fv_dir + "&fileName=" + fv_filename;
+// 
+//         this.filedownObj.show();
+// 		var bSucc = this.filedownObj.download();
+// 	} 
+}
+
+this.FileDownloadbds_success = function(obj:FileDownload,  e:nexacro.FileDownloadEventInfo)
+{
+	NXCore.alert("다운로드 되었습니다");
+}
+
+
+this.FileDownloadbds_error = function(obj:FileDownload,  e:nexacro.FileDownloadErrorEventInfo)
+{
+	NXCore.alert("파일이 존재하지 않습니다\n 실패하였습니다");
+}
+
+/*******************************************************************************
+ * Function Name: gf_excel_download(arg_grid)
+ * Description  : 엑셀 다운로드
+ * Arguments1    : arg_grid    예) this.grd_master
+ * 예) this.gf_excel_download(this.grd_master);
+   * 예) this.gf_excel_download(this.grd_master,'엑셀파일명','A');
+ *******************************************************************************/
+// 에러 메세지그리드 (grd_err)  다운로드
+
+this.gffs_grid;    //  suppress 엑셀 다운로드시 보여주기위해 그리드 전역변수 선언
+this.gffs_grid_suppress_col = new Array();   //  suppress 엑셀 다운로드시 보여주기위해 그리드 col 전역변수 선언
+this.gffs_grid_suppress_val = new Array();   // suppress 엑셀 다운로드시 보여주기위해 그리드 suppress value값  전역변수 선언
+this.gffs_grid_autotype;
+this.gf_excel_download = function(arg_grid, arg_filenm, arg_gbn)
+{ 
+    //20180329 회계팀 요청으로 arg_filenm 이 빈란이면 메뉴명칭 + 일자로 파일명 세팅
+    var vs_obj = this.getOwnerFrame().form;
+    var vs_pgrmid = NXCore.getParameter(vs_obj, CC_FORM_URL);  
+    var vs_pgrmtitle = NXCore.getParameter(vs_obj, CC_FORM_TITLE);
+    
+	// KSM 2016.02.17 
+ 	var vs_filenm = '';
+ 	if(NXCore.isEmpty(arg_filenm) || arg_filenm == '')
+ 	 {
+		if(!NXCore.isEmpty(vs_pgrmtitle) && vs_pgrmtitle != '')
+		{
+		//vs_filenm = arg_grid.name;
+			vs_filenm = vs_pgrmtitle.replace("/","") + "" +this.gf_today();
+		}
+		else
+		{
+			vs_filenm = arg_grid.name;
+		}
+	}
+	else 
+	{
+		vs_filenm = arg_filenm;
+	}   
+	// 2017.05.15 무조건 suppress 무시
+// 	arg_gbn = 'A';
+// 	if(NXCore.isEmpty(arg_gbn) || arg_gbn == '') {
+// 		
+// 	} 
+// 	else {
+// 		for( var i = 0; i < arg_grid.getCellCount("head"); i++){	
+// 				arg_grid.setCellProperty("Body",i, "suppress", '0');
+// 		}	
+// 	}      
+  //arg_grid.set_enableredraw(false);  
+  var vs_cellcount = arg_grid.getCellCount("Head");
+
+  for (var i=0; i < vs_cellcount; i++) {
+	arg_grid.setCellProperty( "Head", i, "background", "#868686ff");
+	// 868686ff >> #444a52ff  css 변경	
+	/*20170830 kw */
+	/*display 가 number 일 경우 mask 에 맨 뒤 빈란 지우고 패딩으로 처리 */
+	arg_grid.setCellProperty("Body",i,"line","1px solid black");
+	if( arg_grid.getCellProperty("Body",i,"displaytype") == "number")
+	{
+		arg_grid.setCellProperty("Body",i,"mask",arg_grid.getCellProperty("Body",i,"mask").trim());
+		arg_grid.setCellProperty("Body",i,"padding","0 4 0 0");
+	}
+  }
+  
+//---------------------pdh------------------------------------------------------------------
+//  suppress된 값을 보여주기위해 suppress된 컬럼 찾기 및 보관  (pdh) ------------------
+//	2018.02.21 suppress된 값처리.
+//------------------------------------------------------------------------------------------
+  this.gffs_grid = arg_grid;
+  this.gffs_grid_suppress_col = new Array();  
+  this.gffs_grid_suppress_val = new Array();
+  this.gffs_grid_autosizingtype=arg_grid.autosizingtype;
+  var  vi_suppress;
+  var j=-1;
+//   for (var i=0; i < vs_cellcount; i++) {
+// 	  //vi_suppress = arg_grid.getCellProperty("Body",i,"suppress");
+// 	  vi_suppress = arg_grid.getCellProperty("Body",i,"suppress");
+// 	  if (NXCore.isEmpty(vi_suppress)) continue;
+// 	  if (vi_suppress == 0) continue;
+// 	  j = j + 1;
+// 	  this.gffs_grid_suppress_col[j] = i;
+// 	  this.gffs_grid_suppress_val[j] = vi_suppress;
+// 	  //arg_grid.setCellProperty( "Body", i, "suppress",0);	  
+// 	  arg_grid.setCellProperty( "Body", i, "suppress",0);	  
+//   }
+	if(!NXCore.isEmpty(vs_pgrmid) && vs_pgrmid != '')
+	{
+		if (vs_pgrmid.substr(0,2) == "fa") {
+			arg_grid.set_autosizingtype("col");
+		}
+	}
+	//arg_grid.autoSizeCol("col","",-1,true);
+	//arg_grid.set_autofittype("col");
+	
+	
+//-------------------------------------------------------------------------------------------    
+
+  var fv_url = "http://" + this._gf_getSvcHost()  + "/" + application.gvs_context + "/"; 
+  var vs_url = fv_url + "XExportImport";
+   if (this.ExcelExportObj) {
+	  this.ExcelExportObj.destroy();
+	}
+
+  this.ExcelExportObj = new ExcelExportObject(); 
+  this.ExcelExportObj.addEventHandler("onprogress", this.ExcelDownObj_onprogress, this);
+  this.ExcelExportObj.addEventHandler("onsuccess", this.ExcelDownObj_onsuccess, this); 
+  this.ExcelExportObj.addEventHandler("onerror", this.ExcelDownObj_onerror, this);  
+  
+  //var ret = this.ExcelExportObj.addExportItem(nexacro.ExportItemTypes.GRID, arg_grid, "Sheet1!A1");
+  var ret = this.ExcelExportObj.addExportItem(nexacro.ExportItemTypes.GRID, arg_grid, "Sheet1!A1","allband","allrecord","nosuppress","allstyle","","", "", "cellline");
+  //this.ExcelExportObj._partition_size = 1000000; // 서버로 전송되는 분할 사이즈를 늘립니다.
+  this.ExcelExportObj.set_exportmessageprocess("%d [ %d / %d ]");
+  this.ExcelExportObj.set_exportuitype("exportprogress");
+  this.ExcelExportObj.set_exporteventtype("itemrecord");
+  this.ExcelExportObj.set_exporttype(nexacro.ExportTypes.EXCEL2007);
+     
+
+  // KSM 2016.02.17 
+  //this.ExcelExportObj.set_exportfilename(arg_grid.name);
+  this.ExcelExportObj.set_exportfilename(vs_filenm);  
+  //this.ExcelExportObj.set_exportactivemode('active');
+  this.ExcelExportObj.set_exporturl(vs_url);  
+  this.ExcelExportObj.exportData(); 
+  //this.ExcelExportObj.exportData("","",false);   
+}	
+this.ExcelDownObj_onprogress = function(obj:ExcelExportObject, e:nexacro.ExcelExportEventInfo)
+{
+
+}
+this.ExcelDownObj_onsuccess = function(obj:ExcelExportObject, e:nexacro.ExcelExportEventInfo)
+{
+// 	// 	2018.02.21 suppress된 값처리.
+//    for (var i=0; i < this.gffs_grid_suppress_col.length; i++) {
+// 	this.gffs_grid.setCellProperty( "Body",this.gffs_grid_suppress_col[i], "suppress", this.gffs_grid_suppress_val[i]);
+//   }
+  // 20180329 kw 엑셀 변환시 그리드에 라인 그려준거 해제
+  var vs_cellcount = this.gffs_grid.getCellCount("Head");
+  for (var i=0; i < vs_cellcount; i++) {
+	this.gffs_grid.setCellProperty("Body",i,"line","");
+  }
+  // 그리드 사이징 타입 none
+  this.gffs_grid.set_autosizingtype(this.gffs_grid_autosizingtype);
+}
+this.ExcelDownObj_onerror = function(obj:ExcelExportObject, e:nexacro.ExcelExportEventInfo)
+{
+   NXCore.alert("비정상처리 되었습니다");
+}
+
+/*******************************************************************************
+ * Function Name: gf_required_stc(obj, arg_vb)
+ * Description  : static field에 필수입력여부 *를 붙이고 안붙이고함.
+ * Arguments1    : ojb    예) this.stc_dept
+ * Arguments2   : true or false    true는 *를 붙힘 예)  true
+ * 예) this.gf_required_stc(this.stc_dept, true);      // 텍스트앞에 * 을 붙힌다 
+//  *******************************************************************************/
+// 
+// this.gf_required_stc = function(obj, arg_vb) 
+// {
+// 	var oldText = obj.text;
+// 	obj.set_usedecorate(true);
+// 	var i = oldText.lastIndexOf("/b>");
+// 	if (i > 0) {
+// 		oldText = oldText.substr(i+3);
+//      }
+// 	if (arg_vb)
+// 		obj.set_text("<b v='true'><ff v='verdana'><fc v='red'>*</fc></ff></b>"+oldText);
+//     else
+// 		obj.set_text(oldText);
+// }
+// 
+/*******************************************************************************
+ * Function Name: gf_popup_btn_enable(obj, arg_button_id)
+ * Description  : popup 화면에서 버튼을 enable한다.
+ * Arguments1    : objS    예) this.div_button
+ * Arguments2   : button id 예) btn_query|btn_close
+ * 예) gf_popup_btn_enable(this.div_button, "btn_query|btn_close")     
+ *******************************************************************************/
+this.gf_popup_btn_enable = function(arg_div,arg_button)
+{
+    this.gf_popup_btn_control("enable",true, arg_div, arg_button);
+}
+/*******************************************************************************
+ * Function Name: gf_popup_btn_disable(obj, arg_button_id)
+ * Description  : popup 화면에서 버튼을 disable한다.
+ * Arguments1    : ojb    예) this.div_button
+ * Arguments2   : button id 예) btn_query|btn_close
+ * 예) gf_popup_btn_enable(this.div_button, "btn_query|btn_close")     
+ *******************************************************************************/
+this.gf_popup_btn_disable = function(arg_div,arg_button)
+{
+    this.gf_popup_btn_control("enable",false, arg_div, arg_button);
+}
+/*******************************************************************************
+ * Function Name: gf_popup_btn_hide(obj, arg_button_id)
+ * Description  : popup 화면에서 버튼을 hide한다.
+ * Arguments1    : ojb    예) this.div_button
+ * Arguments2   : button id 예) btn_query|btn_close
+ * 예) gf_popup_btn_enable(this.div_button, "btn_query|btn_close")     
+ *******************************************************************************/
+this.gf_popup_btn_hide = function(arg_div, arg_button)
+{
+    this.gf_popup_btn_control("visible",false, arg_div, arg_button);
+   this.gf_popup_btn_sort(arg_div);  
+}
+/*******************************************************************************
+ * Function Name: gf_popup_btn_add(obj, arg_button)
+ * Description  : popup 화면에서 버튼을 추가한다.
+ * Arguments1    : ojb    예) this.div_button
+ * Arguments2   : button id 예) "btn_1|결재@btn_2|상신"
+ * 예) gf_popup_btn_add(this.div_button, "btn_1|결재@btn_2|상신")     
+ *******************************************************************************/
+this.gf_popup_btn_add = function(arg_div, arg_button)
+{
+	var va_button = new Array();      //  @ 개수 check
+	var va_button_len = new Array();  //  버튼 길이
+	var va_button_id  = new Array();  //  버튼 id
+	var va_button_txt  = new Array();  //  버튼 text
+	var va_split = new Array();
+	var vi_tot_len=0;
+	va_button = arg_button.split("@");      // 추가할 버튼의 개수
+	var va_button_cnt = va_button.length;
+	for (var i=0; i<va_button_cnt;i++) {     // 버튼의 길이 / id / 텍스트를 구한다.
+		va_split = va_button[i].split("|");
+		va_button_len[i] = this.gf_haneng_length(va_split[1]);
+		if (parseInt(va_button_len[i] / 4, 10) == 0) 
+			va_button_len[i]=50;
+		else {
+		   va_button_len[i] = parseInt(va_button_len[i] / 2, 10) * 15;  // 한글자당 15
+		   va_button_len[i] = va_button_len[i] + 20 ;  // 여백 20을 더함.
+		}
+		vi_tot_len = vi_tot_len + va_button_len[i]+2;
+		va_button_id[i] = va_split[0];
+		va_button_txt[i] = this.gf_get_trans_word(va_split[1]);	//다국어 변환후 버튼 텍스트 표시
+	}
+	
+	var vi_div_left, vi_div_top;
+	if (!NXCore.isEmpty(arg_div.left))
+		vi_div_left = arg_div.left;
+	else {
+		vi_div_left = parseInt(this.width,10) - parseInt(arg_div.right,10) - parseInt(arg_div.width,10);
+	}
+	
+	arg_div.set_left(vi_div_left);
+	vi_div_top = arg_div.top;
+	vi_div_top = parseInt(vi_div_top,10) + 2;
+ 
+	// 실제 생성 
+	for (var i=0; i < va_button_cnt; i++) {
+		var objDelete = this.removeChild(va_button_id[i]);
+	    trace("!!!" + (vi_div_left - vi_tot_len));
+		var objBtn = new Button();
+		objBtn.init(va_button_id[i] , "absolute", vi_div_left - vi_tot_len, parseInt(vi_div_top,10) + 1, va_button_len[i], 30);
+        vi_tot_len = vi_tot_len - va_button_len[i] -2;
+		this.addChild(objBtn.name, objBtn);
+		objBtn.set_text(va_button_txt[i]);
+		//objBtn.setEventHandler("onclick", this.Button_onclick, this);
+		objBtn.addEventHandler("onclick", eval("this." + va_button_id[i] + "_onclick") , this);
+
+		objBtn.set_visible(true);
+		objBtn.show();
+	}
+	 
+	
+}
+
+// popup 버튼에서 visible이 false인것을 찾아서 재정렬한다.
+this.gf_popup_btn_sort = function(arg_div)
+{
+	var va_button_obj = new Array();
+	va_button_obj = arg_div.components;
+	var va_left = new Array();
+	var va_top = new Array(); 
+	// 버튼의 위치 기억 left와 top
+	for (var i=0; i<va_button_obj.length; i++) {
+		va_left [i] = va_button_obj[i].left;
+		va_top [i] = va_button_obj[i].top;
+	}
+
+	// visible이 false인것을 찾는다.(뒤에서 부터) 
+	for (var i=va_button_obj.length-1; i >=0; i--) {
+		if (va_button_obj[i].visible) {
+		   continue;    // visible이 true이면 continue
+		}
+		for (var j = i ; j > 0 ; j--) {               // 뒤에서부터 앞에것을 move한다.
+			va_button_obj[j-1].move(va_left[j], va_top[j]);
+		}
+	}
+}
+
+
+// popup 버튼 속성 바꾸기 공통 모듈(enable 과 visible 속성 처리) 
+this.gf_popup_btn_control = function(arg_type, arg_value,  arg_div, arg_button)
+{
+	var va_button_obj = new Array();
+	var va_button_id = new Array();
+	va_button_obj = arg_div.components;
+	va_button_id = arg_button.split("|");
+	for (var i=0; i < va_button_id.length; i++) {
+		for (var j=0; j<va_button_obj.length; j++) {    // div하에있는 컴포넌트 갯수만큼
+			if (va_button_obj[j].id == va_button_id[i] ) {
+				if (arg_type == "enable") {
+					va_button_obj[j].set_enable(arg_value);
+				}
+				if (arg_type == "visible") {
+					va_button_obj[j].set_visible(arg_value);
+				}
+			}
+		}
+	}
+}
+
+
+/*******************************************************************************
+ * Function Name: gf_mdi_btn_enable(arg_button_id)
+ * Description  : mdi 화면에서 버튼을 enable한다.
+ * Arguments1   : button id 예) btn_query|btn_close
+ * 예) gf_mdi_btn_enable("query,close")     
+ *******************************************************************************/
+this.gf_mdi_btn_enable = function(arg_button)
+{
+    this.gf_mdi_btn_control("enable",true,  arg_button);
+}
+/*******************************************************************************
+ * Function Name: gf_mdi_btn_disable(arg_button_id)
+ * Description  : mdi 화면에서 버튼을 disable한다.
+ * Arguments1   : button id 예) btn_query|btn_close
+ * 예) gf_mdi_btn_disable("query,add")     
+ *******************************************************************************/
+this.gf_mdi_btn_disable = function(arg_button)
+{
+    this.gf_mdi_btn_control("enable",false, arg_button);
+}
+
+// mdi  버튼 속성 바꾸기 공통 모듈(enable 과 visible 속성 처리) 
+this.gf_mdi_btn_control = function(arg_type, arg_value, arg_button)
+{
+ 	var va_button_id = new Array();
+ 	va_button_id = arg_button.split(",");
+ 
+	switch (arg_type)
+	{
+	
+		case "enable" :
+		    for (var i=0; i < va_button_id.length; i++) {
+		        try {
+					eval("this.parent.parent.div_btnList." + "btn_" + va_button_id[i] + ".set_enable(" + arg_value + ");"); 
+				}
+				catch (e) { 
+				}
+			}	
+			break;
+	}
+}
+
+/*******************************************************************************
+ * Function Name: gf_mdi_btn_status(arg_button_id)
+ * Description  : mdi 화면에서 버튼 상태 조회 
+ * Arguments1   : button id 예)
+ * 예) gf_mdi_btn_disable("query")     
+ *******************************************************************************/
+this.gf_mdi_btn_status = function(arg_button)
+{
+	var vb_ret;
+    try {
+	         vb_ret =      eval("this.parent.parent.div_btnList." + "btn_" + arg_button + ".enable;"); 
+	         }
+	         catch (e) {
+	          vb_ret = false
+			}
+	return	vb_ret;
+}
+
+
+// 한글 영문 글자 길이 check 한글은 2바이트로 계산한다.
+this.gf_haneng_length = function(string) { 
+
+    char_cnt = 0; 
+    for(var i = 0; i < string.length; i++)     { 
+     
+        var chr = string.substr(i,1); 
+        chr = escape(chr); 
+        key_eg = chr.charAt(1); 
+        // key_eg 가 u 이면 한글 , 공백이면 영문 , 숫자면 특수문자 
+         
+        switch (key_eg) { 
+        case "u": 
+            key_num = chr.substr(2,(chr.length-1)); 
+            if((key_num < "AC00") || (key_num > "D7A3")) { 
+                alert("잘못된 입력입니다"); 
+                return false; 
+            } else { 
+                char_cnt = char_cnt + 2; 
+            }         
+            break; 
+        case "B": 
+            char_cnt = char_cnt + 2; 
+            break;     
+        case "A": 
+            alert("잘못된 입력입니다"); 
+            return false;     
+            break; 
+        default: 
+            char_cnt = char_cnt + 1;     
+        } 
+    } 
+
+return char_cnt; 
+} 
+  
+//---------------------------------------------------------------------------------------------------------------------
+// 기능 : 사업장 코드 선택 권한 체크 및 readonly setting
+// 반환 : protect 값 - 0: 전체사업장, 1:개별사업장
+// 예제 : gf_check_saupj();
+// 작성 : 이양헌  - 2015.0605
+//---------------------------------------------------------------------------------------------------------------------
+this.gf_check_saupj = function(obj_saupj) { 
+
+	if(application.gvs_saupj == "%" || application.gvs_saupj == "99" || application.gvs_sysid == "Y")
+	{
+		return 0;
+	}
+	else
+	{
+		if(NXCore.isEmpty(obj_saupj)){
+			return 1;
+		}
+		obj_saupj.readonly = true;
+		obj_saupj.style.set_background("#e7e7e7");
+
+		return 1;
+	}
+}
+
+
+//---------------------------------------------------------------------------------------------------------------------
+// 기능 : 전표번호 만들기 
+// 반환 : 전표번호 4자리 
+// 예제 : gf_check_saupj();
+// 작성 : 이양헌  - 2015.0605
+//---------------------------------------------------------------------------------------------------------------------
+this.gf_get_junpyo = function(obj_date, obj_jpgu, obj_length) { 
+	var vs_return = this.gf_Procedure_sync("SP_GET_JUNPYO", obj_date+"|"+obj_jpgu, "PROCEDURE","ff_Callback_sync", 0);
+
+	var vn_lenghth;
+	
+   if (NXCore.isEmpty(obj_length) || obj_length < 1 || obj_length > 5)  
+	  vn_lenghth = 4;
+   else
+	  vn_lenghth = obj_length;
+
+	return     this.gf_NumToStr(vs_return, vn_lenghth);
+}
+
+
+//---------------------------------------------------------------------------------------------------------------------
+// 기능 : 전표번호 만들기 NI (RUNNEOSALES)
+// 반환 : 전표번호 4자리 
+// 예제 : gf_get_junpyo_ni
+// 작성 : KSM  - 2018.01.25
+//---------------------------------------------------------------------------------------------------------------------
+this.gf_get_junpyo_ni = function(obj_date, obj_jpgu, obj_length) { 
+	var vs_return = this.gf_Procedure_sync("SP_GET_JUNPYO_NI", obj_date+"|"+obj_jpgu, "PROCEDURE","ff_Callback_sync", 0);
+
+	var vn_lenghth;
+	
+   if (NXCore.isEmpty(obj_length) || obj_length < 1 || obj_length > 5)  
+	  vn_lenghth = 4;
+   else
+	  vn_lenghth = obj_length;
+
+
+	// return     this.gf_NumToStr(vs_return, vn_lenghth);
+	
+	//----------------------------------------------------------------
+	//--- 2016.11.09 계산서 발행 작업 중 전표번호가 10000 을 초과하여
+	//---            긴급 조치하다.
+	//----------------------------------------------------------------
+
+	if (vs_return >= 35000) {
+		return  'Z' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 34000) {
+		return  'Y' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 33000) {
+		return  'X' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 32000) {
+		return  'W' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 31000) {
+		return  'V' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 30000) {
+		return  'U' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 29000) {
+		return  'T' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 28000) {
+		return  'S' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 27000) {
+		return  'R' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 26000) {
+		return  'Q' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 25000) {
+		return  'P' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 24000) {
+		return  'O' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 23000) {
+		return  'N' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 22000) {
+		return  'M' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 21000) {
+		return  'L' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 20000) {
+		return  'K' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+    if (vs_return >= 19000) {
+    	return  'J' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 18000) {
+    	return  'I' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 17000) {
+    	return  'H' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 16000) {
+    	return  'G' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 15000) {
+    	return  'F' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 14000) {
+    	return  'E' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 13000) {
+    	return  'D' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 12000) {
+    	return  'C' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 11000) {
+    	return  'B' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 10000) {
+    	return  'A' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}	
+
+	return     this.gf_NumToStr(vs_return, vn_lenghth);
+}
+
+
+//---------------------------------------------------------------------------------------------------------------------
+// 기능 : 전표번호 만들기 NB (RUNNEOHQ)
+// 반환 : 전표번호 4자리 
+// 예제 : gf_get_junpyo_nb
+// 작성 : KSM  - 2018.01.25
+//---------------------------------------------------------------------------------------------------------------------
+this.gf_get_junpyo_nb = function(obj_date, obj_jpgu, obj_length) { 
+	var vs_return = this.gf_Procedure_sync("SP_GET_JUNPYO_NB", obj_date+"|"+obj_jpgu, "PROCEDURE","ff_Callback_sync", 0);
+
+	var vn_lenghth;
+	
+   if (NXCore.isEmpty(obj_length) || obj_length < 1 || obj_length > 5)  
+	  vn_lenghth = 4;
+   else
+	  vn_lenghth = obj_length;
+
+
+	// return     this.gf_NumToStr(vs_return, vn_lenghth);
+	
+	//----------------------------------------------------------------
+	//--- 2016.11.09 계산서 발행 작업 중 전표번호가 10000 을 초과하여
+	//---            긴급 조치하다.
+	//----------------------------------------------------------------
+
+	if (vs_return >= 35000) {
+		return  'Z' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 34000) {
+		return  'Y' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 33000) {
+		return  'X' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 32000) {
+		return  'W' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 31000) {
+		return  'V' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 30000) {
+		return  'U' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 29000) {
+		return  'T' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 28000) {
+		return  'S' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 27000) {
+		return  'R' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 26000) {
+		return  'Q' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 25000) {
+		return  'P' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 24000) {
+		return  'O' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 23000) {
+		return  'N' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+	if (vs_return >= 22000) {
+		return  'M' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 21000) {
+		return  'L' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else	
+	if (vs_return >= 20000) {
+		return  'K' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+    else
+    if (vs_return >= 19000) {
+    	return  'J' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 18000) {
+    	return  'I' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 17000) {
+    	return  'H' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 16000) {
+    	return  'G' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 15000) {
+    	return  'F' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 14000) {
+    	return  'E' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 13000) {
+    	return  'D' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 12000) {
+    	return  'C' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 11000) {
+    	return  'B' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}
+	else
+    if (vs_return >= 10000) {
+    	return  'A' + this.gf_NumToStr(vs_return, vn_lenghth - 1);
+	}	
+
+	return     this.gf_NumToStr(vs_return, vn_lenghth);
+}
+
+
+
+
+//---------------------------------------------------------------------------------------------------------------------
+// 기능 : 전표채번 lot
+// 반환 : 채번 순번(String)
+// 작성 : 네오에서 사용
+//---------------------------------------------------------------------------------------------------------------------
+this.gf_get_junpyo_lot = function(obj_date, obj_jpgu)
+{
+	var vs_return = this.gf_Procedure_sync("SP_GET_JUNPYO", obj_date+"|"+obj_jpgu, "PROCEDURE","ff_Callback_sync", 0);
+
+	return     this.gf_NumToStr(vs_return, 5);
+}
+
+this.gf_get_junpyo2 = function(obj_date, obj_jpgu, obj_length) { 
+	var vs_return = this.gf_Procedure_sync("SP_GET_JUNPYO", obj_date+"|"+obj_jpgu, "PROCEDURE","ff_Callback_sync", 0);
+
+	var vn_lenghth;
+	
+   if (NXCore.isEmpty(obj_length) || obj_length < 1 || obj_length > 4)  
+	  vn_lenghth = 3;
+   else
+	  vn_lenghth = obj_length;
+	  
+	  
+
+	return     this.gf_NumToStr(vs_return, vn_lenghth);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+// 기능 : 파일위치 path와 파일명을 주면  전체 주소및 파일명 한글처리  
+// 반환 : 이미지 주소  
+// 예제 : gf_image_url("pm/s", "사진.jpg")
+// 작성 : 박두현   - 2015.0605
+//---------------------------------------------------------------------------------------------------------------------
+this.gf_image_url = function(arg_path, arg_filename) { 
+
+   var vs_path=arg_path;
+   var vs_filename = arg_filename;
+ 
+   if (NXCore.isEmpty(vs_path))
+		vs_path="";
+  
+   if (NXCore.isEmpty(vs_filename)) {
+		vs_filename="";
+		return "";
+	}
+
+	var fv_url = "http://" + this._gf_getSvcHost()  + "/fileupdownload/"; 
+    fv_url += vs_path;
+    
+	if (application.gv_lang ==  "KR" )  {
+		vs_filename = encodeURIComponent(vs_filename);
+    }
+    fv_url += "/" +  vs_filename;
+
+	return    fv_url;
+}
+//---------------------------------------------------------------------------------------------------------------------
+// 기능 : 환경설정 값 가져오기  
+// 반환 : 환경설정 값
+// 예제 : gf_Getsyscnfg("S", 11, "1")
+// 작성 : 문규복 - 2015.06.24
+//---------------------------------------------------------------------------------------------------------------------
+this.gf_Getsyscnfg = function(vSysgu, vSerial, vLineno)
+{
+    var ds_Temp_Syscnfg = new Dataset;
+    this.addChild("ds_Temp_Syscnfg", ds_Temp_Syscnfg); 
+
+	var vArgs=" select DATANAME "
+			+ " from syscnfg "
+			+ " where sysgu  = '" + vSysgu  + "' "
+			+ "   and serial =  " + vSerial + "  "
+			+ "   and lineno = '" + vLineno + "' ";
+
+	this.gf_SelectSql_sync("ds_Temp_Syscnfg : " + vArgs , "","ff_Callback_sync");
+	if (this.ds_Temp_Syscnfg.rowcount == 0) {
+		this.removeChild("ds_Temp_Syscnfg");
+		return '';
+	}
+	else {
+		var vs_return;
+		vs_return = this.ds_Temp_Syscnfg.getColumn(0,"DATANAME");
+		this.removeChild("ds_Temp_Syscnfg");
+		return vs_return;
+	}
+}
+//---------------------------------------------------------------------------------------------------------------------
+// 기능 : 코드/코드명칭  값 가져오기  
+// 반환 : 코드/코드명칭  값
+// 예제 : gf_Get_Name(구분, 코드)
+// 작성 : 이양헌 - 2015.07.08
+//---------------------------------------------------------------------------------------------------------------------
+this.gf_Get_Name = function(vGubun, vCode)
+{
+	var vSql="", vReturn;
+	
+	// 부서
+	if(vGubun=="01") vSql = "select cvnas2 as NM from vndmst where cvcod='"+vCode+"' and cvgu='4'";
+	// 사원
+	if(vGubun=="02") vSql = "select empname as NM from erpacc.p1_master where empno='"+vCode+"' ";
+	// 창고
+	if(vGubun=="03") vSql = "select cvnas2 as NM from vndmst where cvcod='"+vCode+"' and cvgu='5' ";
+	// 작업장
+	if(vGubun=="05") vSql = "select wcdsc as NM from wrkctr where wkctr='"+vCode+"' ";
+	// 조(반)
+	if(vGubun=="06") vSql = "select jonam as NM from jomast where jocod='"+vCode+"' ";
+	// 영업팀
+	if(vGubun=="07") vSql = "select steamnm as NM from steam where steamcd='"+vCode+"' ";
+	// 관할구역
+	if(vGubun=="08") vSql = "select sareanm as NM from sarea where sarea='"+vCode+"' ";
+	// 생산팀코드
+	if(vGubun=="09") vSql = "select fun_get_pdtgu('"+vCode+"','1') as NM  from dual ";
+	// 생산팀명칭
+	if(vGubun=="10") vSql = "select fun_get_pdtgu('"+vCode+"','2') as NM  from dual ";
+	// 거래처
+	if(vGubun=="11") vSql = "select cvnas2  as NM from vndmst where cvcod='"+vCode+"' and cvgu not in ('4','5') ";
+	// 품목분류명
+	if(vGubun=="12") vSql = "select titnm  as NM from itnct where ittyp='"+vOpt+"' and itcls='"+vCode+"' ";
+	// 품명
+	if(vGubun=="13") vSql = "select itdsc  as NM from itemas where itnbr='"+vCode+"' ";
+	// 규격
+	if(vGubun=="14") vSql = "select ispec as NM  from itemas where itnbr='"+vCode+"' ";
+
+
+	// MRO관리창고
+	if(vGubun=="31") vSql = "select cvcod  as NM from vndmst_stock "
+												+ " where saupj='"+vOpt+"' and deptcode='"+vCode+"' and jumaechul='5' and soguan='9' and rownum=1";
+
+	if(vSql != ""){
+		var ds_Temp_Get_Name = new Dataset;
+		this.addChild("ds_Temp_Get_Name", ds_Temp_Get_Name); 
+		this.gf_SelectSql_sync("ds_Temp_Get_Name : " + vSql , "","ff_Callback_sync");
+		if (this.ds_Temp_Get_Name.rowcount == 0) {
+			this.removeChild("ds_Temp_Get_Name");
+			return "";
+		}
+		else {
+			var vs_rtn = this.ds_Temp_Get_Name.getColumn(0, "NM");
+			this.removeChild("ds_Temp_Get_Name");
+			if (NXCore.isEmpty(vs_rtn)) 
+				return "";
+			else
+				return vs_rtn;
+		}
+	}
+	
+	return "";
+}
+//---------------------------------------------------------------------------------------------------------------------
+// 기능 : 프로그램 full id로 새로운 mdi 윈도우를 띠움  
+// 반환 : 없슴
+// 예제 : 	this.gf_mdi_open("co_syst::co_syst_menupage_e");
+// 작성 : 박두현  - 2015.06.24
+//---------------------------------------------------------------------------------------------------------------------
+this.gf_mdi_open = function(arg_scrn_url)
+{
+	
+	var vi_find = application.gds_menu.findRow("SCRN_URL",arg_scrn_url + ".xfdl");
+	var vi_seq_key_pgrm = application.gds_menu.getColumn(vi_find,"SEQ_KEY_PGRM");
+	this.gf_showMain(vi_seq_key_pgrm , null, {'opened':'focus'});
+	
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+// 기능 : 날짜 , 시간 차이
+// 반환 : 분
+// 예제 : f_Daytimeterm('20050818','20050818','1600','1800') --> 120 을 반환;
+//        시작일자 , 종료일자 , 시작시간 , 종료시간
+// 작성 : 배석의 - 2015.07.31
+//---------------------------------------------------------------------------------------------------------------------
+this.gf_Daytimeterm = function(arg_Date1, arg_Date2, arg_Time1, arg_Time2)
+{
+    var objDelete = this.removeChild("ds_Temp_Daytimeterm");	
+    
+	var ds_Temp_Daytimeterm = new Dataset;
+    this.addChild("ds_Temp_Daytimeterm", ds_Temp_Daytimeterm); 
+    
+	if(NXCore.isEmpty(arg_Time1) || arg_Time1 == '')arg_Time1 = '000000' ;
+	if(arg_Time1.length == 1)arg_Time1 = arg_Time1 + '00000' ;
+	if(arg_Time1.length == 2)arg_Time1 = arg_Time1 + '0000' ;
+	if(arg_Time1.length == 3)arg_Time1 = arg_Time1 + '000' ;
+	if(arg_Time1.length == 4)arg_Time1 = arg_Time1 + '00' ;
+	if(arg_Time1.length == 5)arg_Time1 = arg_Time1 + '0' ;
+	if(arg_Time1.length > 6)return 0;
+	
+	if(NXCore.isEmpty(arg_Time2) || arg_Time2 == '')arg_Time2 = '000000' ;
+	if(arg_Time2.length == 1)arg_Time2 = arg_Time2 + '00000' ;
+	if(arg_Time2.length == 2)arg_Time2 = arg_Time2 + '0000' ;
+	if(arg_Time2.length == 3)arg_Time2 = arg_Time2 + '000' ;
+	if(arg_Time2.length == 4)arg_Time2 = arg_Time2 + '00' ;
+	if(arg_Time2.length == 5)arg_Time2 = arg_Time2 + '0' ;
+	if(arg_Time2.length > 6)return 0;
+	
+	if(this.gf_datecheck(arg_Date1) != 1)return 0;
+	if(this.gf_datecheck(arg_Date2) != 1)return 0;
+	
+	var vSql = "select round((to_date('"+arg_Date2+"'||'"+arg_Time2+"','YYYYMMDDHH24MISS') - "+
+	       "              to_date('"+arg_Date1+"'||'"+arg_Time1+"','YYYYMMDDHH24MISS')) * 24 * 60 ,2) AS TERM "+
+	       "  from dual " ;
+	       
+	this.gf_SelectSql_sync("ds_Temp_Daytimeterm : " + vSql , "","ff_Callback_sync");
+	
+	var vs_Rtn = this.ds_Temp_Daytimeterm.getColumn(0, "TERM");
+	
+	if(NXCore.isEmpty(vs_Rtn) || vs_Rtn == '')return 0;
+		
+	return vs_Rtn;
+	
+	 
+}
+
+//--------------------------------------------------------------------
+// 기능 : 양수의 실수값에서 소숫점 절사 처리한다.
+//        오라클이 절사하는 경우와 맞추기 위해서 변경함
+// 반환 : 원하는 실수값
+// 예제 : f_round( 10.234, 2 )  --> 10.23, f_round( 10.235, 2 ) --> 10.24
+// 작성 : 무명씨 - 2010.05.04
+//--------------------------------------------------------------------
+this.gf_trunc = function(nNum, nPos)
+{
+	var half = 0.5;
+	var factor = 1;
+	var i;
+	
+	var nRemain_temp = 0;
+	var nRemain  = 0;
+	var nRemain2 = 0;
+	
+	var nTemp, nTemp2, nTemp3, nTemp4;
+	
+	var nPow  = Math.pow(10, nPos);
+	var nPow2 = Math.pow(10, nPos + 1);   ///// 소수점 이상으로 한번 가공함...(2009.09.30)
+	
+	nNum = parseFloat(nNum);
+	
+	////alert('원숫자1:' + nNum);
+	
+	if (nNum <= 0 || nNum < 0) 
+	{
+		nNum = nNum * -1;
+		
+		//----------------------------------------------
+		//// 소수점 반올림이 되는 대상 바로 밑에서
+		//// 절사한다...
+		//----------------------------------------------
+		////nTemp = Math.floor(nNum * nPow2) / nPow2; //// 2010.01.03 사용하지 않음
+		
+		////2010.01.03 1이 0.999999....로 표현되는 것을 보정하기 위한 작업
+		//// (2010.01.06 수정(0.1을 더했던 것을 0.001로 수정))
+		nTemp = Math.floor((nNum * nPow2) + 0.001) / (nPow2);
+		
+		nTemp2 = nTemp * -1;
+	}
+    else 
+    {
+		//----------------------------------------------
+		//// 소수점 반올림이 되는 대상 바로 밑에서
+		//// 절사한다...
+		//----------------------------------------------
+		////nTemp = Math.floor(nNum * nPow2) / nPow2; //// 2010.01.03 사용하지 않음
+		
+		////2010.01.03 1이 0.999999....로 표현되는 것을 보정하기 위한 작업
+		nTemp = Math.floor((nNum * nPow2) + 0.001) / (nPow2);
+		
+		////alert('계산임시' + Math.floor(nNum * nPow2));
+
+		nTemp2 = nTemp;
+	}
+	
+	//-----------------------------------------------
+	//// 소수 반올림 대상이 되는 밑의 자리에서
+	//// 0.5이상이 되는 것은 반올림을 한다...
+	//-----------------------------------------------
+	for (i = 0; i <= nPos; i++) 
+	{
+		//--------------------------
+		//// 첫번째는 제외한다...
+		//--------------------------
+		half   *= 0.1;
+		
+		factor *= 10;
+	}
+	
+	//----------------------------------------------
+	//// 소수점 반올림이 되는 대상으로 처리한다...
+	//----------------------------------------------
+	if (nTemp2 <= 0 || nTemp2 < 0)  //// 음수일 경우
+	{
+		nTemp2 = nTemp2 * -1;
+		
+		////nRemain = nTemp2 * nPow2 % 10;  //// 2009.12.28 comment 처리
+		////nRemain = Math.round(nTemp2 * nPow2) % 10;  //// 2009.12.28 처리
+		nRemain = Math.floor((nTemp2 * nPow2) + 0.001) % 10;  //// 2010.01.04 처리
+		
+		//18.05.04 절사처리 위해 반올림로직 주석처리
+// 		if (nRemain >= 5)
+// 		{
+// 			///// nTemp3 = parseInt((nTemp2 + (half * 10)) * factor) / factor;  //// 반올림 처리
+// 			nTemp3 = parseInt(nTemp2 * factor) / factor;   //// 절사 처리
+// 			////nRemain2 = nTemp3 * nPow2 % 10;  //// 2009.12.28 comment 처리
+// 			////nRemain2 = Math.round(nTemp3 * nPow2) % 10;   //// 2009.12.28 처리 2010.01.04 COMMENT 처리
+// 			nRemain2 = Math.floor((nTemp3 * nPow2) + 0.001) % 10;   //// 2009.12.28 처리
+// 			if (nRemain2 >= 5)
+// 			{
+// 				//// nTemp4 = parseInt((nTemp3 + (half * 10)) * factor) / factor;   //// 반올림 처리
+// 				nTemp4 = parseInt(nTemp3 * factor) / factor;  //// 절사 처리
+// 				//// nTemp4 = Math.floor(Math.round(nTemp4 * nPow * 10) / 10) / nPow;    /// 0.9999로 표현되는 것 때문에 수정(2009.10.21)
+// 				//// alert('계산2 : ' + nTemp4);
+// 				nTemp4 = Math.floor((nTemp4 * nPow) + 0.001) / nPow;    /// 0.9999로 표현되는 것 때문에 수정(2009.10.21)	
+// 			}
+// 			else
+// 			{
+// 				////nTemp4 = Math.round(nTemp3 * nPow) / nPow;   ////  2010.01.04 COMMENT 처리
+// 				nTemp4 = Math.floor((nTemp3 * nPow) + 0.001) / nPow; //// 2010.01.04 처리
+// 			}
+// 		}
+// 		else
+// 		{
+				////nTemp4 = Math.round(nTemp2 * nPow) / nPow;
+			nTemp4 = Math.floor((nTemp2 * nPow) + 0.001) / nPow;   //// 2010.01.04 처리
+		//}
+
+		nTemp4 = nTemp4 * -1;
+	}
+    else //// 양수일 경우
+    {
+		////alert('원숫자2:' + nTemp2);
+		
+		////nRemain = nTemp2 * nPow2 % 10;  //// 2009.12.28 comment 처리...
+		
+		//nRemain = Math.round((nTemp2 * nPow2 * 10) / 10) % 10;  //// 2009.12.28 수정
+		nRemain = Math.floor((nTemp2 * nPow2) + 0.001) % 10;  //// 2009.01.04 수정
+		
+		////alert( Math.round(nTemp2 * nPow2) + '/' + nTemp2 + '아래 자리수 나머지' + nRemain);
+
+		//18.05.04 절사처리 위해 반올림로직 주석처리
+// 		if (nRemain >= 5)
+// 		{
+// 			//// nTemp3 = parseInt((nTemp2 + (half * 10)) * factor) / factor;   //// 반올림 처리
+// 			nTemp3 = parseInt(nTemp2 * factor) / factor;   //// 절사 처리
+// 
+// 			////alert('계산금액1 : ' + nTemp3);
+// 			
+// 			nRemain2 = Math.floor((nTemp3 * nPow2) + 0.001) % 10;
+// 			
+// 			////alert('잔액2:' + nRemain2);
+// 			
+// 			if (nRemain2 >= 5)
+// 			{
+// 				///// nTemp4 = parseInt((nTemp3 + (half * 10)) * factor) / factor;   //// 반올림 처리
+// 				nTemp4 = parseInt(nTemp3 * factor) / factor;   ///// 절사 처리
+// 			
+// 				nTemp4 = Math.floor((nTemp4 * nPow) + 0.001) / nPow;    /// 0.9999로 표현되는 것 때문에 수정(2009.10.21)
+// 			}
+// 			else
+// 			{
+// 				////nTemp4 = Math.round(nTemp3 * nPow) / nPow;
+// 				nTemp4 = Math.floor((nTemp3 * nPow) + 0.001) / nPow;
+// 			}
+// 		}
+// 		else
+// 		{
+			////nTemp4 = Math.round(nTemp2 * nPow) / nPow; //// 2009.01.04 COMMNET 처리
+			nTemp4 = Math.floor((nTemp2 * nPow) + 0.001) / nPow;   //// 2009.01.04
+		//}
+	}
+	
+	return nTemp4;
+}
+// 주민번호 check 
+this.ff_JuminCheck= function(vData)   // 주민등록번호 체크
+{
+	var i = 0, k = 0;
+
+	if (NXCore.isEmpty(vData))
+	{
+		return true;
+	}
+	
+	vData = vData.replace(' ', '');
+	if(vData.length != 13)
+	{
+		return false;
+	}
+
+	var vJumin = vData; //// 주민번호 보관
+	var vTotal = 0;
+	var vTotalMod, vChd;
+	var vTemp = new Array(13);  //// 주민등록번호 각 자리를 저장할 배열 확보
+	
+	for (i = 0; i < 13; i++) //// 연산을 위해서 각 자리를 정수로 변환하여 배열에 저장함
+	{
+		vTemp[i] = parseInt(vJumin.charAt(i));
+	}
+
+	if (vTemp[6] > 4) 
+	{
+		return true;	//외국인은 체크 안함
+	}
+
+	for (i = 0; i < 12; i++)
+	{
+		k = i + 2;
+		
+		if (k >= 10) 
+		{
+			k = k % 10 + 2;
+		}
+		vTotal += vTemp[i] * k;   // 각 자리에 2,3,4,....를 곱해서 그 결과를 누적함
+	}
+	
+	vTotalMod = vTotal % 11;  // 11로 나눈 나머지를 구함
+	vChd = 11 - vTotalMod;   // 11에서 뺌
+	
+	if (vChd == 10) vChd = 0;
+	
+	if (vChd == 11) vChd = 1;  // 최종 결과가 11이나 10처럼 두 자리일 경우에는 뒷 자리를 사용함
+	
+	if (vTemp[6] == 1 || vTemp[6] == 2 || vTemp[6] == 5 || vTemp[6] == 6) 
+	{
+		var year = "19";
+	}
+	else 
+	{
+		var year = "20";
+	}
+	
+	if (this.gf_datecheck(year+""+vData.substr(0,6)) == -1) 
+	{
+		return false;
+	}
+	if (year + "" +vData.substr(0,6) >= "20201001")
+	{
+		if(vTemp[6] == "3" || vTemp[6] == "4")
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	
+	if (vChd != vTemp[12])   // 최종 결과와 주민등록번호 끝자리가 같으면
+	{
+		return false;
+	}
+	
+	return true;
+}
+
+//--------------------------------------------------------------------
+// 기능 : 기준단위와 변환단위로 변환수량 계산
+// 반환 : 원하는 실수값
+// 예제 : gf_Getchangeqty( 'KG', 'MT' )  --> 20 -> 20000
+// 작성 : 배석의 - 2016.09.19
+//--------------------------------------------------------------------
+this.gf_Getchangeqty = function(vs_Unmsr, vs_Cunmsr)
+{
+	var objDelete = this.removeChild("ds_Temp_Changeqty");	
+    
+	var ds_Temp_Changeqty = new Dataset;
+    this.addChild("ds_Temp_Changeqty", ds_Temp_Changeqty); 
+    
+	var vSql = "select FUN_GET_CHANGE_UNMSR('"+vs_Unmsr+"', '"+vs_Cunmsr+"') AS CHANGEQTY "
+	       + "  from dual " ;
+	       
+	this.gf_SelectSql_sync("ds_Temp_Changeqty : " + vSql , "","ff_Callback_sync");
+	
+	var vs_Rtn = this.ds_Temp_Changeqty.getColumn(0, "CHANGEQTY");
+	
+	if(NXCore.isEmpty(vs_Rtn) || vs_Rtn == '')return 0;
+		
+	return vs_Rtn;
+}
+
+
+
+
+// 기본코드 가져오기 2016.02.17 KSM
+// fun_get_reffpf_rfna 활용 
+this.gf_Get_reffpf_rfna = function(vRfcod, vRfgub, vValct)
+{
+
+    var ds_Temp_reffpf = new Dataset;
+    this.addChild("ds_Temp_reffpf", ds_Temp_reffpf); 
+
+	var vArgs=" select fun_get_reffpf_rfna( '" + vRfcod + "','" + vRfgub + "','" + vValct + "' ) AS RTN  "
+			+ " from dual " ;
+			
+	this.gf_SelectSql_sync("ds_Temp_reffpf : " + vArgs , "","ff_Callback_sync");
+	if (this.ds_Temp_reffpf.rowcount == 0) {
+		this.removeChild("ds_Temp_reffpf");
+		return '';
+	}
+	else {
+		var vs_return;
+		vs_return = this.ds_Temp_reffpf.getColumn(0,"RTN");
+		this.removeChild("ds_Temp_reffpf");
+		return vs_return;
+	}
+}
+
+/*****************************************************************************************
+ * 함  수  명	: 	gf_set_format
+ * 아규먼트 	: 	gridName : 그리드 명  예) this.grd_master
+ *                  vs_col :  컬럼명      예) "IOPRC"
+ *                  vs_mask :  msk         예) "#,##0.0000"	
+ * 기      능	: 	그리드에서  컬럼에 FORMAT MAST SETTING     2016.03.04 KSM
+ *****************************************************************************************/
+
+this.gf_set_format = function(gridName, vs_col, vs_mask)
+{
+// 	var vs_sql =	" select  fun_get_reffpf_rfna('FM',  fun_get_reffpf_rfna('FM','PRC','2'),'2') AS PRC ";
+// 		vs_sql += 	"        ,fun_get_reffpf_rfna('FM',  fun_get_reffpf_rfna('FM','AMT','2'),'2') AS AMT ";
+// 		vs_sql += 	"        ,fun_get_reffpf_rfna('FM',  fun_get_reffpf_rfna('FM','QTY','2'),'2') AS QTY ";
+// 		vs_sql += 	" from dual "
+// 	this.gf_SelectSql_sync("ds_Temp : " + vs_sql , "SELECT_TEMP","ff_Callback_sync");
+
+// 	// 소수점 이하 Format 설정. 
+	var vn_col = gridName.getBindCellIndex("body", vs_col);
+
+	if ( vs_mask <= "#,##0.0000000000" && vs_mask >= "#,###" )
+	{
+		gridName.setCellProperty( "Body", vn_col, "displaytype", "number");
+		// gridName.setCellProperty( "Body", vn_col, "edittype", "masknumber");
+		gridName.setCellProperty( "Body", vn_col, "mask", vs_mask + ' ');
+	}
+	
+}
+
+// 2016.03.18 KSM
+this.gf_get_day = function(strDate)
+{
+    var vs_temp = strDate;
+    
+    vs_temp = vs_temp.toString().replace(/-/g, "").replace(/\//g, "").replace(/\./g, "").replace(/:/g, "").replace(/ /g, "");    
+	var year = vs_temp.substr(0,4); 
+	var month = vs_temp.substr(4,2);
+	var day = vs_temp.substr(6,2);
+	
+	var objDate2 = new Date(year,nexacro.toNumber(month)-1,day);   // date로 변경
+	
+	var vn_day = objDate2.getDay()
+	return vn_day;
+	
+}
+
+//***************************************************************************//
+//*** Function Name : gf_set_trans_result ( 결과 )							**//
+//*** Argument      :ls_word    **//
+//*** Return        : 	
+//    예제 : this.gf_set_trans_result("번역")
+// 	   2016.03.21 KSM
+//***************************************************************************//
+this.gf_set_trans_result = function(arg_base_word)
+{
+	//--------------------------------//
+	//다국어 변환결과 반영.
+	//--------------------------------//
+	if (application.gv_transword_hist == 'N') return ;
+	var vs_word = arg_base_word.trim(" ") ;
+	if( NXCore.isEmpty(vs_word)) return ;
+
+
+	var vs_Sql	=	"	MERGE INTO TRANS_WORD USING DUAL									"
+				+	"	ON ( BASE_WORD = '"+ vs_word + "' )									"
+				+	"		WHEN MATCHED THEN												"
+				+	"			UPDATE SET TRANS_CNT = NVL(TRANS_CNT,0) + 1					"
+				+	" 			WHERE NVL(TRANS_CNT,0) < 999999999	 								"
+				+	"		WHEN NOT MATCHED THEN											"
+				+	"			INSERT ( BASE_WORD, TRANS_CNT, BIGO) 						"
+				+	"			VALUES ( '"+ vs_word + "', 1, TO_CHAR(SYSDATE,'YYMMDD')) 	";
+	
+	 //trace( arg_base_word + ' >> ' +  vs_Sql ) ;
+		 
+	this.gf_UpdateSql_sync(vs_Sql , "MERGE_SQL","ff_Callback",0);
+	return ;
+}
+
+
+//***************************************************************************//
+//*** Function Name : gf_set_msgfile_result ( 결과 )							**//
+//*** Argument      :arg_msg_no    **//
+//*** Return        : 	
+//    예제 : this.gf_set_msgfile_result(123)
+// 	   2016.03.30 KSM
+//***************************************************************************//
+this.gf_set_msgfile_result = function(arg_msg_no)
+{
+	//--------------------------------//
+	//다국어 변환결과 반영.
+	//--------------------------------//
+	
+	if (application.gv_transword_hist == 'N') return ;
+
+	var vs_Sql	=	"	MERGE INTO MSGFILE USING DUAL									"
+				+	"	ON ( MSG_NO = '"+ arg_msg_no + "' )									"
+				+	"		WHEN MATCHED THEN												"
+				+	"			UPDATE SET TRANS_CNT = NVL(TRANS_CNT,0) + 1					"
+				+	" 			WHERE NVL(TRANS_CNT,0) < 999999999	 								"
+				+	"		WHEN NOT MATCHED THEN											"
+				+	"			INSERT ( MSG_NO, TRANS_CNT, MSG_TXT_VN2) 						"
+				+	"			VALUES ( "+ arg_msg_no + ", 1, TO_CHAR(SYSDATE,'YYMMDD')) 	";
+ 
+	this.gf_UpdateSql_sync(vs_Sql , "MERGE_SQL","ff_Callback",0);
+	return ;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+// 기능 : POP 전표번호 만들기 
+// 반환 : 전표번호 4자리 
+// 예제 : gf_get_pop_junpyo();
+// 작성 : KSM  - 2016.06.21
+//---------------------------------------------------------------------------------------------------------------------
+this.gf_get_pop_junpyo = function(obj_date, obj_jpgu, obj_length) { 
+	var vs_return = this.gf_Procedure_sync("SP_GET_POP_JUNPYO", obj_date+"|"+obj_jpgu, "PROCEDURE","ff_Callback_sync", 0);
+	var vn_lenghth;
+	
+   if (NXCore.isEmpty(obj_length) || obj_length < 1 || obj_length > 5)  
+	  vn_lenghth = 4;
+   else
+	  vn_lenghth = obj_length;
+
+	return     this.gf_NumToStr(vs_return, vn_lenghth);
+}
+
+this.gf_sale_danga = function(obj_date, obj_cvcod, obj_itnbr, obj_curr) 
+{ 
+
+    var objDelete = this.removeChild("ds_Temp_sale_danga");	
+    
+	var ds_Temp_sale_danga = new Dataset;
+    this.addChild("ds_Temp_sale_danga", ds_Temp_sale_danga); 
+    
+	var vSql = "select fun_erp100000012_1('"+ obj_date +"', "
+					+ "                       '"+ obj_cvcod +"', "
+					+ "                       '"+ obj_itnbr +"', "
+					+ "                       '"+ obj_curr +"') as UNPRC FROM DUAL" ;
+	       
+	this.gf_SelectSql_sync("ds_Temp_sale_danga : " + vSql , "","ff_Callback_sync");
+	
+	var vs_Rtn = this.ds_Temp_sale_danga.getColumn(0, "UNPRC");
+	
+	if(NXCore.isEmpty(vs_Rtn) || vs_Rtn == '')return 0;
+		
+	return vs_Rtn;
+}
+
+// 확인 20181023
+var gf_grid_name;
+this.gf_excel_download_large_data = function(arg_grid, arg_file_name)
+{
+    // 엑셀내리기 dll이 있는지 검수 
+    gf_grid_name = arg_file_name;
+    if(NXCore.isEmpty(arg_file_name) || arg_file_name == '') {
+		gf_grid_name = arg_grid.name
+ 	}
+	var vm_Extension = {};
+	var vb_return = nexacro._addExtensionModule(vm_Extension, system.convertRealPath("%EXECUTE%") + "NexaExportObject.dll");
+	if (!vb_return) {
+	    alert("error : this module (NexaExportObject.dll) is not install ");
+		return false;
+	}
+    vb_return = nexacro._addExtensionModule(vm_Extension, system.convertRealPath("%EXECUTE%") + "NexaXlsAutomation.dll");
+	if (!vb_return) {
+	   alert("error : this module (NexaXlsAutomation.dll) is not install ");
+	   return false;
+	}
+
+	this.GExcelExportObjectRuntime = new nexacro.ExcelExportObjectEx();
+	
+	this.GExcelExportObjectRuntime.objExtURL = system.convertRealPath("%EXECUTE%") + "NexaExportObject.dll";
+	this.GExcelExportObjectRuntime.load_Module(); //LIBExcel laod;		
+	this.GExcelExportObjectRuntime.addEventHandler("onsuccess", this.ExcelDownObj_onsuccess, this);	
+	//this.GExcelExportObjectRuntime.addEventHandler("onerror", this.GExcelExportObjectRuntime_onerror, this);		
+	
+	this.GExcelExportObjectRuntime.addExportItem(nexacro.ExportItemTypes.GRID, arg_grid, "Sheet1Test!A1");
+
+	this.GExcelExportObjectRuntime.set_exportmessageprocess("파일명: " + gf_grid_name + " %d [ %d / %d ]");
+	this.GExcelExportObjectRuntime.set_exportuitype("exportprogress");
+	this.GExcelExportObjectRuntime.set_exporteventtype("itemrecord");
+    this.GExcelExportObjectRuntime.set_exporttype(nexacro.ExportTypes.EXCEL2007);
+    
+   //2016.5.20 add
+	this.GExcelExportObjectRuntime.set_bExportDispValue(false);
+	//2016.5.9 추가.
+	//셀 수식 사용 여부 true 이고, display type : normal or text 이고, 첫번째 데이터가 "=" 일 경우만.
+	this.GExcelExportObjectRuntime.set_bCellNumFormula(true); 
+	
+	this.GFileDialogRuntime = new nexacro.FileDialog();
+	this.GFileDialogRuntime.set_async(true) // set 
+	this.GFileDialogRuntime.addEventHandler("onclose", this.GFileDialogRuntime_onclose, this);	
+	this.rtnpath = this.GFileDialogRuntime.open("다운로드 경로선택", FileDialog.SELFOLDER,"C:\\");
+
+	return true;
+}
+
+this.GFileDialogRuntime_onclose = function(obj:FileDialog, e:nexacro.FileDialogEventInfo)
+{
+     
+    this.GExcelExportObjectRuntime.set_exportfilename(e.path + "\\" + gf_grid_name + ".xlsx");
+    
+    this.GExcelExportObjectRuntime.exportEx();   
+    
+    this.GExcelExportObjectRuntime.unload_Module(); //LIBExcel laod;
+	
+	this.GExcelExportObjectRuntime = null;   
+    return true;
+}]]></Script>

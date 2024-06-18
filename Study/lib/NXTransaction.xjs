@@ -1,0 +1,1064 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Script type="xscript5.0"><![CDATA[
+this._gf_getSvcHost = function() {
+
+	return application.gds_env.lookup("RUN_MODE", application.gv_runMode, "HOST_ADDR");
+}
+
+
+/*****************************************************************************************
+ * 함  수  명	: 	gf_Transaction_Async
+ * 아규먼트 	: 	strSvcID : 써비비 아이디 예) "SELECT_MASTER"
+ *                  strSvcNm : jsp명         예) Common/sample01_1tr.jsp
+ *                  strInDatasets : in dataset명  예) ds_para=ds_Head 
+ *                  strOutDatasets : out dataset명  예) ds_Master=output1
+ *                  strCallbackFunc : 콜백함수      예) "ff_Callback"
+ * 기      능	: 	트랜잭션 콜METHOD  중 Async 방식으로 호출 
+ *****************************************************************************************/
+this.gf_Transaction_Async = function(strSvcID, strSvcNm, strInDatasets, strOutDatasets, strCallbackFunc) 
+{
+   var sStep = "";
+   
+   var vi_ret;
+   vi_ret =  strSvcNm.indexOf("?");
+   if (vi_ret == -1) {
+       strSvcNm += "?dbconn=0";
+   }
+   else {
+      vi_ret = strSvcNm.indexOf("dbconn=");
+      if (vi_ret >= 0) {}
+      else 
+		 strSvcNm += "&dbconn=0";
+   }
+   this.transaction(strSvcID, "svc::"+this._gf_getSvcHost()+"/" + application.gvs_context + "/jsp/"+strSvcNm, strInDatasets, strOutDatasets,"", strCallbackFunc, true, 2);
+}
+
+/*****************************************************************************************
+ * 함  수  명	: 	gf_Transaction_sync
+ * 아규먼트 	: 	strSvcID : 써비비 아이디 예) "SELECT_MASTER"
+ *                  strSvcNm : jsp명         예) Common/sample01_1tr.jsp
+ *                  strInDatasets : in dataset명  예) ds_para=ds_Head 
+ *                  strOutDatasets : out dataset명  예) ds_Master=output1
+ *                  strCallbackFunc : 콜백함수      예) "ff_Callback"
+ * 기      능	: 	트랜잭션 콜METHOD  중 sync 방식으로 호출 
+ *****************************************************************************************/
+this.gf_Transaction_sync = function(strSvcID, strSvcNm, strInDatasets, strOutDatasets, strCallbackFunc) 
+{
+   var vi_ret;
+   vi_ret =  strSvcNm.indexOf("?");
+   if (vi_ret == -1) {
+       strSvcNm += "?dbconn=0";
+   }
+   else {
+      vi_ret = strSvcNm.indexOf("dbconn=");
+      if (vi_ret >= 0) {}
+      else 
+		 strSvcNm += "&dbconn=0";
+   }
+    
+   this.transaction(strSvcID, "svc::"+this._gf_getSvcHost()+"/" + application.gvs_context + "/jsp/"+strSvcNm, strInDatasets, strOutDatasets,"", strCallbackFunc,false, 2);
+}
+
+/*****************************************************************************************
+ * 함  수  명	: 	gf_Transaction_invar_sync
+ * 아규먼트 	: 	strSvcID : 써비비 아이디 예) "SELECT_MASTER"
+ *                  strSvcNm : jsp명         예) Common/sample01_1tr.jsp
+ *                  strInDatasets : in dataset명  예) ds_para=ds_Head 
+ *                  strOutDatasets : out dataset명  예) ds_Master=output1
+ *                  srtInvar : input variable  예) reqid = aaaa
+ *                  strCallbackFunc : 콜백함수      예) "ff_Callback"
+ * 기      능	: 	트랜잭션 콜METHOD  중 input variable을 이용하여 파라메터를 넘길경우 사용  
+ *                  utf-8에서 get 방식을 사용하지않고 이 함수를 콜하면 post방식으로 파라메터가 전달됨.
+ *****************************************************************************************/
+
+this.gf_Transaction_invar_sync = function(strSvcID, strSvcNm, strInDatasets, strOutDatasets, srtInvar, strCallbackFunc) 
+{
+   var vi_ret;
+   vi_ret =  strSvcNm.indexOf("?");
+   if (vi_ret == -1) {
+       strSvcNm += "?dbconn=0";
+   }
+   else {
+      vi_ret = strSvcNm.indexOf("dbconn=");
+      if (vi_ret >= 0) {}
+      else 
+		 strSvcNm += "&dbconn=0";
+   }
+   this.transaction(strSvcID, "svc::"+this._gf_getSvcHost()+"/" + application.gvs_context + "/jsp/"+strSvcNm, strInDatasets, strOutDatasets,srtInvar, strCallbackFunc,false, 2);
+}
+/*****************************************************************************************
+ * 함  수  명	: 	gf_combo_create
+ * 아규먼트 	: 	arg_combo : 데이타셋과 key  예) "ds_combo_aa:10@ds_combo_bb:11@ds_combo_cc:13"
+ *                  arg_svc : 써비스 id         예) "COMBO"
+ *                  arg_callback : 콜백함수      예) "ff_Callback"
+ *                  arg_db       : 디비 연결     예) 0 
+ * 기      능	: 	콤보 박스을 사용하기위해 공통코드에서 조회하여 콤보데이타셋값 셋팅
+ *                  (현재 사용하지않음)
+ *****************************************************************************************/
+
+this.gf_combo_create = function(arg_combo, arg_svc, arg_callback, arg_db)
+{
+		this.gf_combo_create_comm(arg_combo, arg_svc, arg_callback, arg_db, true);
+}
+
+this.gf_combo_create_sync = function(arg_combo, arg_svc, arg_callback, arg_db)
+{
+	this.gf_combo_create_comm(arg_combo, arg_svc, arg_callback, arg_db, false);
+}
+
+this.gf_combo_create_comm = function(arg_combo, arg_svc, arg_callback, arg_db, arg_type)
+{
+    var objDelete = this.removeChild("ds_combo_para_bds");	
+    var ds_combo_para_bds = new Dataset;
+    var vi_idx =  this.addChild("ds_combo_para_bds", ds_combo_para_bds); 
+	ds_combo_para_bds.addColumn( "arg_code", "string", 120 );
+    ds_combo_para_bds.clearData();
+ 
+     var vs_ds_name, vs_code_name;
+    var v_outdataset="";
+	var combo_array = new Array();
+	combo_array = arg_combo.split("@");
+	for (var i=0; i<combo_array.length; i++)
+	{
+		var vs_ds_code_name = new Array();
+		vs_ds_code_name = combo_array[i].split(":");
+		var vi_row = ds_combo_para_bds.addRow();
+		ds_combo_para_bds.setColumn(vi_row,'arg_code', vs_ds_code_name[1].trim(" "));
+	    v_outdataset	+= vs_ds_code_name[0].trim(" ") + "=output" + (i+1) + " ";
+	}
+    if (!NXCore.isEmpty(arg_db))
+       v_SvcAct += "?dbconn=" + arg_db;
+
+	v_SvcAct		= "Common/common_combo_1q.jsp";    // 
+    if (!NXCore.isEmpty(arg_db))
+       v_SvcAct += "?dbconn=" + arg_db;
+
+	v_InDataset		=  "ds_para=ds_combo_para_bds";     // 반드시 기술할것
+	v_Argument		= "";  
+
+   if (arg_type)
+	  this.gf_Transaction_Async(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+   else	  
+	  this.gf_Transaction_sync(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+
+	var objDelete = this.removeChild("ds_combo_para_bds");
+}
+/*****************************************************************************************
+ * 함  수  명	: 	gf_SelectSql_Async
+ * 아규먼트 	: 	arg_select : 데이타셋명: SQL문장 @ 데이타셋명 : SQL문장
+ *                여러개의 DATA SET과 SQL문장을 기술하여 한번에 조회한다.
+ *              예) "ds_master:SELECT * FROM LOGIN_T @ds_detail:SELECT * FROM A_TABLE"
+ *                  arg_svc : 써비스 id         예) "COMBO"
+ *                  arg_callback : 콜백함수      예) "ff_Callback"
+ *                  arg_db       : 디비 연결     예) 0 
+ * 기      능	: 	Async로 콜하여 여러개의 DATA SET과 SQL문장을 기술하여 한번에 조회한다.(한개의 데이타셋과 SQL문장도 가능)
+ *****************************************************************************************/
+this.gf_SelectSql_Async = function(arg_select, arg_svc, arg_callback, arg_db)
+{
+    this.gf_SelectSql_comm(arg_select, arg_svc, arg_callback, arg_db,true);
+}
+/*****************************************************************************************
+ * 함  수  명	: 	gf_SelectSql_sync
+ * 아규먼트 	: 	arg_select : 데이타셋명: SQL문장 @ 데이타셋명 : SQL문장
+ *                여러개의 DATA SET과 SQL문장을 기술하여 한번에 조회한다.
+ *              예) "ds_master:SELECT * FROM LOGIN_T @ds_detail:SELECT * FROM A_TABLE"
+ *                  arg_svc : 써비스 id         예) "COMBO"
+ *                  arg_callback : 콜백함수      예) "ff_Callback"
+ *                  arg_db       : 디비 연결     예) 0 
+ * 기      능	: 	sync로 콜하여 여러개의 DATA SET과 SQL문장을 기술하여 한번에 조회한다.(한개의 데이타셋과 SQL문장도 가능)
+ *****************************************************************************************/
+this.gf_SelectSql_sync = function(arg_select, arg_svc, arg_callback, arg_db)
+{
+	 this.gf_SelectSql_comm(arg_select, arg_svc, arg_callback, arg_db,false);
+}
+this.gf_SelectSql_link_sync = function(arg_select, arg_svc, arg_callback, arg_db)
+{
+	 this.gf_SelectSql_link_comm(arg_select, arg_svc, arg_callback, arg_db,false);
+}
+
+this.gf_SelectSql_comm = function(arg_select, arg_svc, arg_callback, arg_db, arg_type)
+{
+    arg_select = this.gf_tab_trans(arg_select);  // 텝키 제거
+    var objDelete = this.removeChild("ds_select_para_bds");	
+    var ds_select_para_bds = new Dataset;
+    var vi_idx =  this.addChild("ds_select_para_bds", ds_select_para_bds); 
+	ds_select_para_bds.addColumn( "arg_code", "string", 1200 );
+    ds_select_para_bds.clearData();
+ 
+     var vs_ds_name, vs_code_name;
+    var v_outdataset="";
+	var select_array = new Array();
+	select_array = arg_select.split("@");
+	for (var i=0; i<select_array.length; i++)
+	{
+		var vs_ds_code_name = new Array();
+		vs_ds_code_name = select_array[i].split(":");
+		var vi_row = ds_select_para_bds.addRow();
+		ds_select_para_bds.setColumn(vi_row,'arg_code', vs_ds_code_name[1]);
+	    v_outdataset	+= vs_ds_code_name[0].trim(" ") + "=output" + (i+1) + " ";
+	}
+
+	v_SvcAct		= "Common/SelectSql_1q.jsp";    // 
+
+    if (!NXCore.isEmpty(arg_db))
+       v_SvcAct += "?dbconn=" + arg_db;
+	v_InDataset		=  "ds_para=ds_select_para_bds";     // 반드시 기술할것
+	v_Argument		= "";  
+
+	if (arg_type)
+		this.gf_Transaction_Async(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);
+    else			
+		this.gf_Transaction_sync(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);
+
+	//  sync이면서 row의 첫뻔째 로우의 값을 array로 return한다. 
+	var va_ret = new Array();
+	var vs_dataset = vs_ds_code_name[0].trim(" ");
+	var vi_rowcount = eval( "this." + vs_dataset + ".rowcount");
+
+	va_ret[0] = vi_rowcount;
+    if (arg_type == false) { // sync 일경우에 return 시킴 
+		var nColCnt = eval( "this." +vs_dataset + ".getColCount()");
+		for (var i=0; i < nColCnt; i++) {
+			va_ret[i+1] = eval("this." +vs_dataset + ".getColumn(0," + i + ")");
+		}
+    }
+	var objDelete = this.removeChild("ds_select_para_bds");
+    return va_ret;
+}
+
+this.gf_SelectSql_link_comm = function(arg_select, arg_svc, arg_callback, arg_db, arg_type)
+{
+    arg_select = this.gf_tab_trans(arg_select);  // 텝키 제거
+    var objDelete = this.removeChild("ds_select_para_bds");	
+    var ds_select_para_bds = new Dataset;
+    var vi_idx =  this.addChild("ds_select_para_bds", ds_select_para_bds); 
+	ds_select_para_bds.addColumn( "arg_code", "string", 1200 );
+    ds_select_para_bds.clearData();
+ 
+     var vs_ds_name, vs_code_name;
+    var v_outdataset="";
+	var select_array = new Array();
+	select_array = arg_select.split("@#$");
+	for (var i=0; i<select_array.length; i++)
+	{
+		var vs_ds_code_name = new Array();
+		vs_ds_code_name = select_array[i].split(":");
+		var vi_row = ds_select_para_bds.addRow();
+		ds_select_para_bds.setColumn(vi_row,'arg_code', vs_ds_code_name[1]);
+	    v_outdataset	+= vs_ds_code_name[0].trim(" ") + "=output" + (i+1) + " ";
+	}
+
+	v_SvcAct		= "Common/SelectSql_1q.jsp";    // 
+
+    if (!NXCore.isEmpty(arg_db))
+       v_SvcAct += "?dbconn=" + arg_db;
+	v_InDataset		=  "ds_para=ds_select_para_bds";     // 반드시 기술할것
+	v_Argument		= "";  
+
+	if (arg_type)
+		this.gf_Transaction_Async(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);
+    else			
+		this.gf_Transaction_sync(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);
+
+	//  sync이면서 row의 첫뻔째 로우의 값을 array로 return한다. 
+	var va_ret = new Array();
+	var vs_dataset = vs_ds_code_name[0].trim(" ");
+	var vi_rowcount = eval( "this." + vs_dataset + ".rowcount");
+
+	va_ret[0] = vi_rowcount;
+    if (arg_type == false) { // sync 일경우에 return 시킴 
+		var nColCnt = eval( "this." +vs_dataset + ".getColCount()");
+		for (var i=0; i < nColCnt; i++) {
+			va_ret[i+1] = eval("this." +vs_dataset + ".getColumn(0," + i + ")");
+		}
+    }
+	var objDelete = this.removeChild("ds_select_para_bds");
+    return va_ret;
+}
+/*****************************************************************************************
+ * 함  수  명	: 	gf_UpdateSql_Async
+ * 아규먼트 	: 	arg_sql : SQL문장 @  SQL문장
+ *                여러개의SQL문장을 기술하여 한번에 입력및 수정 한다.
+ *              예) " UPDATE	DEPTCODE SET DEPTNAME = '1111' WHERE DEPTCODE = '01' @ PDATE DEPTCODE SET DEPTNAME = '2222' "
+ *                  vs_id : 써비스 id         예) "COMBO"
+ *                  vs_collback : 콜백함수      예) "ff_Callback"
+ *                  arg_db       : 디비 연결     예) 0 
+ * 기      능	: 	Async로 콜하여 여러개의입력및 수정 삭제 SQL을 수행한다. 
+ *****************************************************************************************/
+ 
+this.gf_UpdateSql_Async = function (arg_sql, vs_id,  vs_collback, arg_db)
+{
+	this.gf_UpdateSql_comm(arg_sql, vs_id,  vs_collback, arg_db,true);
+} 
+/*****************************************************************************************
+ * 함  수  명	: 	gf_UpdateSql_sync
+ * 아규먼트 	: 	arg_sql : SQL문장 @#$  SQL문장
+ *                여러개의SQL문장을 기술하여 한번에 입력및 수정 한다.
+ *              예) " UPDATE	DEPTCODE SET DEPTNAME = '1111' WHERE DEPTCODE = '01' @ PDATE DEPTCODE SET DEPTNAME = '2222' "
+ *                  vs_id : 써비스 id         예) "COMBO"
+ *                  vs_collback : 콜백함수      예) "ff_Callback_sync"
+ *                  arg_db       : 디비 연결     예) 0 
+ * 기      능	: 	sync로 콜하여 여러개의입력및 수정 삭제 SQL을 수행한다. 
+ *****************************************************************************************/
+this.gf_UpdateSql_sync = function (arg_sql, vs_id,  vs_collback, arg_db)
+{
+	this.gf_UpdateSql_comm (arg_sql, vs_id,  vs_collback, arg_db,false);
+} 
+
+this.gf_UpdateSql_comm = function (arg_sql, vs_id,  vs_collback, arg_db, arg_type)
+{
+    arg_sql = this.gf_tab_trans(arg_sql);  // 텝키 제거 
+    var objDelete = this.removeChild("ds_update_para_bds");	
+    
+    var ds_update_para_bds = new Dataset;
+    var vi_idx =  this.addChild("ds_update_para_bds", ds_update_para_bds); 
+	ds_update_para_bds.addColumn( "arg_code", "string", 1200 );
+    ds_update_para_bds.clearData();	
+    var update_array = new Array();
+    update_array = arg_sql.split("@#$");
+    for (var i=0; i < update_array.length; i++)
+    {
+		// 2018.05.10 PDH
+		if (NXCore.isEmpty(update_array[i])) continue;
+		if (nexacro.isSpace(update_array[i])) continue;
+		
+		ds_update_para_bds.addRow();
+		ds_update_para_bds.setColumn(i,'arg_code', update_array[i]);
+    }
+    
+	v_SvcAct		= "Common/UpdateSql_1tr.jsp";
+
+    if (!NXCore.isEmpty(arg_db))
+       v_SvcAct += "?dbconn=" + arg_db;
+    
+    v_InDataset		= "input1=ds_update_para_bds:U";       // 반드시 input1으로 기술할것
+	v_OutDataset	= "";
+    if (arg_type)
+		this.gf_Transaction_Async(vs_id, v_SvcAct, v_InDataset, v_OutDataset, vs_collback,true);
+    else
+		this.gf_Transaction_sync(vs_id, v_SvcAct, v_InDataset, v_OutDataset, vs_collback,false);
+    	
+    var objDelete = this.removeChild("ds_update_para_bds");
+ }
+/*****************************************************************************************
+ * 함  수  명	: 	gf_session_set
+ * 아규먼트 	: 	arg_session_name : 섹션 명 
+ *                  arg_session_value : 섹션 값 
+ *                  arg_svc  : 써비스 아이디 
+ *                  arg_callback  : 콜백  
+ *                  arg_db  : 디비 연결정보  
+ * 기      능	: 	섹션정보를 셋팅한다. 
+ *****************************************************************************************/ 
+
+this.gf_session_set = function(arg_session_name, arg_session_value, arg_svc, arg_callback, arg_db)
+{
+    var objDelete = this.removeChild("ds_session_para_bds");	
+
+    var ds_session_para_bds = new Dataset;
+    var vi_idx =  this.addChild("ds_session_para_bds", ds_session_para_bds); 
+	ds_session_para_bds.addColumn( "arg_code", "string", 120 );
+	ds_session_para_bds.addColumn( "arg_name", "string", 120 );
+    ds_session_para_bds.clearData();
+    
+    var vi_row = ds_session_para_bds.addRow();
+    ds_session_para_bds.setColumn(vi_row,'arg_code',arg_session_name.trim(" "));
+    ds_session_para_bds.setColumn(vi_row,'arg_name',arg_session_value.trim(" "));
+
+	v_SvcAct		= "Common/common_session_set_1q.jsp";    // 
+
+    if (!NXCore.isEmpty(arg_db))
+       v_SvcAct += "?dbconn=" + arg_db;
+       
+    v_InDataset		=  "ds_para=ds_session_para_bds";     // 반드시 기술할것
+	v_outdataset    =  "ds_session_para_bds=output1";    
+	v_Argument		= "";  
+
+	this.gf_Transaction_sync(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+  
+	var objDelete = this.removeChild("ds_session_para_bds");
+
+} 
+/*****************************************************************************************
+ * 함  수  명	: 	gf_session_get
+ * 아규먼트 	: 	arg_session : 섹션 명 
+ *                  arg_svc  : 써비스 아이디 
+ *                  arg_callback  : 콜백  
+ * 기      능	: 	섹션정보를 조회한다.  
+ *****************************************************************************************/
+
+this.gf_session_get = function(arg_session, arg_svc, arg_callback)
+{
+   var objDelete = this.removeChild("ds_session_para_bds");	
+
+    var ds_session_para_bds = new Dataset;
+    var vi_idx =  this.addChild("ds_session_para_bds", ds_session_para_bds); 
+	ds_session_para_bds.addColumn( "arg_code", "string", 120 );
+    ds_session_para_bds.clearData();
+ 
+    var vs_ds_name, vs_code_name;
+    var v_outdataset="";
+	var vi_row = ds_session_para_bds.addRow();
+
+	ds_session_para_bds.setColumn(vi_row,'arg_code',arg_session.trim(" "));
+
+	v_SvcAct		= "Common/common_session_get_1q.jsp";    // 
+	v_InDataset		=  "ds_para=ds_session_para_bds";     // 반드시 기술할것
+	v_outdataset    =  "ds_session_para_bds=output1";    
+	v_Argument		= "";  
+    
+	this.gf_Transaction_sync(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+	var vs_ret;
+    if (ds_session_para_bds.rowcount < 0) 
+    {
+		vs_ret = "";
+    } 
+    else {
+		vs_ret = ds_session_para_bds.getColumn(0,'ARG_CODE');
+		if (NXCore.isEmpty(vs_ret)) vs_ret = "";
+		else vs_ret = vs_ret.trim(" ");
+    }
+	var objDelete = this.removeChild("ds_session_para_bds");
+    return vs_ret;
+} 
+
+/*******************************************************************************
+ * 함  수  명 : gf_Procedure_sync
+ * 아규먼트 	: 	arg_proc_name : 프로시져 명칭 예)  "create_daily_chulha"
+ *                  arg_parm  : 파라메터값  예) 2개의 값을 넘길경우  "aa|vv"
+ *                  svc_id    : 써비스 아이디 예) "PROCEDURE"
+ *                  arg_callback    : 콜백명  예) "ff_Callback_sync"
+ *
+ *         OUT이 있을경우 RETURN되는 값이 생긴다. 
+ * 기능	: 프로시져 호출하는 함수  
+ *  ********************************************************************************/
+this.gf_Procedure_sync = function(arg_proc_name, arg_parm, svc_id, arg_callback, arg_db)
+{
+   var objDelete = this.removeChild("ds_procedure_para_bds");	
+ 
+    var ds_procedure_para_bds = new Dataset;
+    var vi_idx1 =  this.addChild("ds_procedure_para_bds", ds_procedure_para_bds); 
+ 	ds_procedure_para_bds.addColumn( "ARG_VALUE", "string", 250);
+    var va_arr = arg_parm.split("|");
+    var vi_nrow;
+    for (var i=0; i < va_arr.length; i++)
+    { 
+		vi_nrow = ds_procedure_para_bds.addRow();
+		ds_procedure_para_bds.setColumn(vi_nrow,'ARG_VALUE',va_arr[i]);
+    }
+    // 프로시져명을 0번째로우에 값을 넣어줌     
+    ds_procedure_para_bds.insertRow(0);
+    ds_procedure_para_bds.setColumn(0,0,arg_proc_name.toUpperCase());
+	
+	objDelete = this.removeChild("ds_procedures_return_bds");	
+	
+ 	var ds_procedures_return_bds = new Dataset;
+    var vi_idx =  this.addChild("ds_procedures_return_bds", ds_procedures_return_bds); 
+
+    var ds_head = ds_procedure_para_bds.id;
+    var v_SvcAct,v_InDataset,v_outdataset,v_Argument;
+    
+	v_SvcAct		= "Common/common_procedure_1tr.jsp";    // 
+
+    if (!NXCore.isEmpty(arg_db))
+       v_SvcAct += "?dbconn=" + arg_db;
+       
+	v_InDataset		=  "ds_para=ds_procedure_para_bds";     // 반드시 기술할것
+	v_outdataset    =  "ds_procedures_return_bds=output1";    
+	v_Argument		= "";  
+
+
+	this.gf_Transaction_sync(svc_id, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+
+	
+	var vs_retu;
+	if (ds_procedures_return_bds.rowcount > 0) {
+       vs_retu = ds_procedures_return_bds.getColumn(0,0);
+       application.gvs_clipboard = ds_procedures_return_bds.getColumn(0,1);		//dbms_output.put_line 값 셋팅
+    }
+    else vs_retu=""; 
+
+	var objDelete = this.removeChild("ds_procedures_return_bds");	
+	var objDelete = this.removeChild("ds_procedure_para_bds");	
+    return vs_retu;
+} 
+/*******************************************************************************
+ * 함  수  명 : gf_Function_sync
+ * 아규먼트 	: 	arg_func_name : function  명칭 예)  "create_daily_chulha"
+ *                  arg_parm  : 파라메터값  예) 2개의 값을 넘길경우  "aa|vv"
+ *                  svc_id    : 써비스 아이디 예) "PROCEDURE"
+ *                  arg_callback    : 콜백명  예) "ff_Callback_sync"
+ *
+ *         OUT이 있을경우 RETURN되는 값이 생긴다. 
+ * 기능	: 함수  호출하는 함수  
+ *  ********************************************************************************/
+
+this.gf_Function_sync = function(arg_func_name, arg_parm, svc_id, arg_callback, arg_db)
+{
+    var objDelete = this.removeChild("ds_function_para_bds");	
+   var ds_function_para_bds = new Dataset;
+    var vi_idx1 =  this.addChild("ds_function_para_bds", ds_function_para_bds); 
+ 	ds_function_para_bds.addColumn( "ARG_VALUE", "string", 250);
+    var va_arr = arg_parm.split("|");
+    var vi_nrow;
+    for (var i=0; i < va_arr.length; i++)
+    { 
+		vi_nrow = ds_function_para_bds.addRow();
+		ds_function_para_bds.setColumn(vi_nrow,'ARG_VALUE',va_arr[i]);
+    }
+    // function 명을 0번째로우에 값을 넣어줌
+    ds_function_para_bds.insertRow(0);
+    ds_function_para_bds.setColumn(0,0,arg_func_name.toUpperCase());
+	
+    objDelete = this.removeChild("ds_functions_return_bds");	
+ 	var ds_functions_return_bds = new Dataset;
+    var vi_idx =  this.addChild("ds_functions_return_bds", ds_functions_return_bds); 
+     
+    var ds_head = ds_function_para_bds.id;
+    var v_SvcAct,v_InDataset,v_outdataset,v_Argument;
+    
+	v_SvcAct		= "Common/common_function_1tr.jsp";    // 
+
+    if (!NXCore.isEmpty(arg_db))
+       v_SvcAct += "?dbconn=" + arg_db;
+       
+	v_InDataset		=  "ds_para=ds_function_para_bds";     // 반드시 기술할것
+	v_outdataset    =  "ds_functions_return_bds=output1";    
+	v_Argument		= "";  
+
+
+	this.gf_Transaction_sync(svc_id, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+
+	
+	var vs_retu;
+	if (ds_functions_return_bds.rowcount > 0) {
+       vs_retu = ds_functions_return_bds.getColumn(0,0);
+       application.gvs_clipboard = ds_functions_return_bds.getColumn(0,1);		//dbms_output.put_line 값 셋팅
+    }
+    else {
+        vs_retu=""; 
+    }
+	var objDelete = this.removeChild("ds_functions_return_bds");	
+	var objDelete = this.removeChild("ds_function_para_bds");	
+    return vs_retu;
+} 
+
+/*******************************************************************************
+ * 함수명 : gf_combo_head_sync
+ *  
+ *       this.gf_combo_head_sync (헤드데이타셋오브젝트, 해드데이타셋컬럼명,콤보오브젝트,해당jsp, 아큐먼트,db연결);
+ *       예) this.gf_combo_head_sync(this.ds_Head,"ARG_RFGUB1",this.Div01.cbo_saup,"co_dddw_reffpf_f_01","",0);
+ *      아규먼트 
+ *           1. arg_head  : 해드데이타셋 오브젝트 : 예) this.Head
+ *           2. arg_column : 컬럼명 : 컬럼 id        예) "SAUPJANG"
+ *           3. arg_cbo : 콤보오브젝트            예) div_head.cbo_saup
+ *           4. arg_jsp : jsp값                   예) "co_dddw_reffpf_f_03""
+ *           5. arg_para : 아규먼트                예) "10|35"
+ *           6. arg_db :  db                      예) 0
+ * 기능 	: combo 생성 및 해더 데이타셋 바인딩   
+ *  ********************************************************************************/
+this.gf_combo_head_Async = function(arg_head ,arg_column ,arg_cbo ,arg_jsp, arg_para,  arg_db)
+{
+		this.gf_combo_head_comm(arg_head ,arg_column ,arg_cbo ,arg_jsp, arg_para,true, arg_db);
+}
+
+this.gf_combo_head_sync = function(arg_head ,arg_column ,arg_cbo ,arg_jsp, arg_para,  arg_db)
+{
+	this.gf_combo_head_comm(arg_head ,arg_column ,arg_cbo ,arg_jsp, arg_para, false, arg_db);
+}
+this.gf_combo_head_comm = function(arg_head ,arg_column ,arg_cbo ,arg_jsp, arg_para,  arg_type, arg_db)
+{
+	var vs_arg_jsp = arg_jsp;           // inner 데이타셋을 사용할경우 "@" 가 있으면 inner 데이타 셋이다.
+	 
+    var vs_ds_combo_para_bds = "_ds_" + arg_cbo.id + "_bds";  // 콤보 조회하기위해 아규먼트를 넘기기위한 데이타 셋 생성 
+    var vs_ds_combo_out_bds = "_ds_" + arg_cbo.id + "_out";   // 조회결과값의 데이타셋
+	var arg_svc= "_svc_" + arg_cbo.id + "_out";
+    var arg_callback="_ff_callback_combo_head";
+
+	var objDelete = this.removeChild(vs_ds_combo_para_bds);     // 파라메터
+	    objDelete = this.removeChild(vs_ds_combo_out_bds);      // 콤보 데이타셋
+	var bind1 = this.removeChild(vs_ds_combo_out_bds+"bo");     // 해드와 바인드
+    
+	var ds_combo_para_bds = new Dataset;                      // 파라메터 데이타셋 생성 
+	ds_combo_para_bds.set_name(vs_ds_combo_para_bds);
+	var vi_idx =  this.addChild(ds_combo_para_bds.name, ds_combo_para_bds); 
+
+	var combo_para = new Array();
+
+	combo_para = arg_para.split("|");
+
+    for (i=0; i < combo_para.length ; i++) {
+		ds_combo_para_bds.addColumn( "ARG_CODE" + (i+1), "string", 120 );
+	}
+	ds_combo_para_bds.clearData();
+    
+	var ds_combo_out_bds = new Dataset();          // 콤보데이타셋 생성 
+	ds_combo_out_bds.set_name(vs_ds_combo_out_bds);
+	var vi_idx =  this.addChild(ds_combo_out_bds.name, ds_combo_out_bds); 
+
+    var objBindItem = new BindItem(); 
+    vi_idx =  this.addChild(vs_ds_combo_out_bds+"bo", objBindItem); 
+    
+ 
+   
+    var vs_form_name = this.name;     // form name 부터 상위 
+    var vs_parent = arg_cbo.parent;
+    var vs_bindid=arg_cbo.name;
+    do {
+        if (vs_form_name == vs_parent.name) break;
+        vs_bindid = vs_parent.name + "." + vs_bindid;
+		vs_parent = vs_parent.parent
+    } while (vs_parent.name != vs_form_name)
+
+    objBindItem.init(vs_ds_combo_out_bds+"b1" ,vs_bindid, "value", arg_head.id ,arg_column);
+    objBindItem.bind();
+    
+	arg_cbo.set_innerdataset("");
+	arg_cbo.set_innerdataset(vs_ds_combo_out_bds);
+	arg_cbo.set_codecolumn("CODE");
+	arg_cbo.set_datacolumn("DATA");
+    
+    var v_outdataset="";
+    var vs_combo_condition="";
+    // 아규먼트 갯수만큼 루핑
+
+	for (var i=0; i<combo_para.length; i++)
+	{
+		if (i==0) 
+		    var vi_row = ds_combo_para_bds.addRow();    
+		ds_combo_para_bds.setColumn(0,'ARG_CODE' + (i+1) , combo_para[i].trim(" "));
+		if (i == combo_para.length -1)
+		   vs_combo_condition=combo_para[i].trim(" ");
+	}
+
+	 v_outdataset = vs_ds_combo_out_bds + "=output1";
+
+	v_SvcAct		= "co/dddw/" + arg_jsp + "_1q.jsp";    
+
+    if (!NXCore.isEmpty(arg_db)) {                          // 인사일경우 주소를 바꾼다.
+		if (arg_db == 1)                                    // 인사일 경우
+			v_SvcAct		= "hr/co/dddw/" + arg_jsp + "_1q.jsp";    
+		if (arg_db == 11)                                    // 인사일 경우
+			v_SvcAct		= "fa/co/dddw/" + arg_jsp + "_1q.jsp";    
+			
+    }		
+
+    if (!NXCore.isEmpty(arg_db)) {
+       var vs_arg_db = arg_db + "";
+       v_SvcAct += "?dbconn=" + vs_arg_db.substr(0,1);
+    }
+
+	v_InDataset		=  "ds_para=" + vs_ds_combo_para_bds;     // 반드시 기술할것
+	v_Argument		= "";  
+	
+    var nIndex;
+    nIndex = vs_arg_jsp.indexOf("@");  // inner 데이타셋을 사용하느냐?
+	if (nIndex ==  -1) {
+		if (arg_type) 
+			this.gf_Transaction_Async(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+		else	{ 
+			this.gf_Transaction_sync(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+		}
+	}
+     else {    // inner dataset를 강제로 만듬.
+        var vb_true;
+        vb_true = ds_combo_out_bds.addColumn( "CODE", "string", 120 );
+        ds_combo_out_bds.addColumn( "DATA", "string", 120 );
+		var va_row_arr = new Array();             // 로우 단위 스플릿 "@"
+		var va_col_arr = new Array();             // 1로우를 컬럼으로 스플릿 "^"
+
+		va_row_arr = vs_arg_jsp.split("@");
+
+		for (var i=0; i < va_row_arr.length; i++) {
+			va_col_arr = va_row_arr[i].split("^");
+			var vi_row = ds_combo_out_bds.addRow();
+			ds_combo_out_bds.setColumn(vi_row,"CODE",va_col_arr[0]);
+			//ds_combo_out_bds.setColumn(vi_row,"DATA",this.gf_get_trans_word(va_col_arr[1]));4
+			ds_combo_out_bds.setColumn(vi_row,"DATA",this.gf_get_trans_meta_word(va_col_arr[1]));
+			
+			
+		}
+    }
+   
+    if (vs_combo_condition.substr(0,1) == "@") {
+		if (vs_combo_condition.substr(1,1) == 'N') {
+		    ds_combo_out_bds.insertRow(0);
+            ds_combo_out_bds.setColumn(0,"CODE","");
+            ds_combo_out_bds.setColumn(0,"DATA","");
+		}    
+		else if (vs_combo_condition.substr(1,1) == 'A') {
+                ds_combo_out_bds.insertRow(0);
+                ds_combo_out_bds.setColumn(0,"CODE","%");
+                ds_combo_out_bds.setColumn(0,"DATA",this.gf_get_trans_meta_word("전체")); 
+         }       
+    }
+	var objDelete = this.removeChild(vs_ds_combo_para_bds);
+
+}
+// 콜백 함수 처리 
+this._ff_callback_combo_head =  function(sSvcID, ErrorCode, ErrorMsg)
+{
+	if (ErrorCode < 0) {
+		alert("svcid= " + sSvcID + "  content=" + ErrorMsg);
+	}
+}
+/*******************************************************************************
+ * 함수명     : gf_combo_grd_sync
+ *  
+ *       this.gf_combo_grd_sync (헤드데이타셋오브젝트, 해드데이타셋컬럼명,해당jsp, 아큐먼트, db연결);
+ *       예) this.gf_combo_grd_sync(this.ds_Head,"ARG_RFGUB1","co_dddw_reffpf_f_01","",0);
+ *      아규먼트 
+ *           1. arg_grd    : 그리드  오브젝트 : 예) this.gd_list
+ *           2. arg_column : 컬럼명 : 컬럼 id        예) "SAUPJANG"
+ *           3. arg_jsp    : jsp값                   예) "co_dddw_reffpf_f_03""
+ *           4. arg_para   :   아규먼트                예) "10|35"
+ *           5. arg_db     : 디비 연결               예) "ff_Callback_sync"
+ * 기능 	: combo 생성 및 그리드  바인딩   
+ *  ********************************************************************************/
+
+this.gf_combo_grd_Async = function(arg_grd ,arg_column ,arg_jsp, arg_para, arg_db)
+{
+		this.gf_combo_grd_comm(arg_grd ,arg_column ,arg_jsp, arg_para, true,arg_db);
+}
+
+this.gf_combo_grd_sync = function(arg_grd ,arg_column ,arg_jsp, arg_para, arg_db)
+{
+	this.gf_combo_grd_comm(arg_grd ,arg_column ,arg_jsp, arg_para,  false,arg_db)
+}
+this.gf_combo_grd_comm = function(arg_grd ,arg_column ,arg_jsp, arg_para,  arg_type, arg_db)
+{
+	var vs_arg_jsp = arg_jsp;           // inner 데이타셋을 사용할경우 "@" 가 있으면 inner 데이타 셋이다.
+    var vs_ds_combo_para_bds = "_dsg_" + arg_grd.id + arg_column + "_bds";  // 콤보 조회하기위해 아규먼트를 넘기기위한 데이타 셋 생성 
+    var vs_ds_combo_out_bds = "_dsg_" + arg_grd.id + arg_column +"_out";   // 조회결광값의 데이타셋
+
+	var arg_svc= "_svc_" + arg_grd.id + arg_column +"_out";
+    var arg_callback="_ff_callback_combo_grd";
+
+	var objDelete = this.removeChild(vs_ds_combo_para_bds);
+	    objDelete = this.removeChild(vs_ds_combo_out_bds);
+    
+	var ds_combo_para_bds = new Dataset;
+	ds_combo_para_bds.set_name(vs_ds_combo_para_bds);
+	var vi_idx =  this.addChild(ds_combo_para_bds.name, ds_combo_para_bds); 
+	var combo_para = new Array();
+	combo_para = arg_para.split("|");
+    for (i=0; i < combo_para.length ; i++) {
+		ds_combo_para_bds.addColumn( "ARG_CODE" + (i+1), "string", 120 );
+	}
+	ds_combo_para_bds.clearData();
+    
+	var ds_combo_out_bds = new Dataset();
+	ds_combo_out_bds.set_name(vs_ds_combo_out_bds);
+	var vi_idx =  this.addChild(ds_combo_out_bds.name, ds_combo_out_bds); 
+	
+    var vi_cell = arg_grd.getBindCellIndex("body", arg_column);
+    bSucc = arg_grd.setCellProperty( "body", vi_cell, "displaytype", "combo");
+ 
+    var vs_edittype = arg_grd.getCellProperty("body", vi_cell, "edittype");
+    if (vs_edittype == 'normal')
+        bSucc = arg_grd.setCellProperty( "body", vi_cell, "edittype", "combo");
+        
+    bSucc = arg_grd.setCellProperty( "body", vi_cell, "combodataset", "");
+    bSucc = arg_grd.setCellProperty( "body", vi_cell, "combodataset", vs_ds_combo_out_bds);
+    bSucc = arg_grd.setCellProperty( "body", vi_cell, "combocodecol", "CODE");
+    bSucc = arg_grd.setCellProperty( "body", vi_cell, "combodatacol", "DATA");
+    
+    var v_outdataset="";
+    // 아규먼트 갯수만큼 루핑
+    var vs_combo_condition="";
+	for (var i=0; i<combo_para.length; i++)
+	{
+		if (i==0) 
+		   var vi_row = ds_combo_para_bds.addRow();
+		ds_combo_para_bds.setColumn(0,'ARG_CODE' + (i+1) , combo_para[i].trim(" "));
+		if (i == combo_para.length -1)
+		   vs_combo_condition=combo_para[i].trim(" ");
+
+	}
+
+	 v_outdataset = vs_ds_combo_out_bds + "=output1";
+
+	v_SvcAct		= "co/dddw/" + arg_jsp + "_1q.jsp";    
+	
+    if (!NXCore.isEmpty(arg_db)) {                          // 인사일경우 주소를 바꾼다.
+		if (arg_db == 1)                                    // 인사일 경우
+			v_SvcAct		= "hr/co/dddw/" + arg_jsp + "_1q.jsp";    
+		if (arg_db == 11)                                    // 인사일 경우
+			v_SvcAct		= "fa/co/dddw/" + arg_jsp + "_1q.jsp";    
+			
+    }		
+
+    if (!NXCore.isEmpty(arg_db)) {
+       var vs_arg_db = arg_db + "";
+       v_SvcAct += "?dbconn=" + vs_arg_db.substr(0,1);
+    }
+
+	v_InDataset		=  "ds_para=" + vs_ds_combo_para_bds;     // 반드시 기술할것
+	v_Argument		= "";  
+   var nIndex;
+    nIndex = vs_arg_jsp.indexOf("@");  // inner 데이타셋을 사용하느냐?
+	if (nIndex ==  -1) {
+		if (arg_type) 
+			this.gf_Transaction_Async(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+		else	{ 
+			this.gf_Transaction_sync(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+		}
+	}
+    else {    // inner dataset를 강제로 만듬.
+        var vb_true;
+        vb_true = ds_combo_out_bds.addColumn( "CODE", "string", 120 );
+        ds_combo_out_bds.addColumn( "DATA", "string", 120 );
+		var va_row_arr = new Array();             // 로우 단위 스플릿 "@"
+		var va_col_arr = new Array();             // 1로우를 컬럼으로 스플릿 "^"
+		va_row_arr = vs_arg_jsp.split("@");
+
+		for (var i=0; i < va_row_arr.length; i++) {
+			va_col_arr = va_row_arr[i].split("^");
+			var vi_row = ds_combo_out_bds.addRow();
+			ds_combo_out_bds.setColumn(vi_row,"CODE",va_col_arr[0]);
+			ds_combo_out_bds.setColumn(vi_row,"DATA",this.gf_get_trans_meta_word(va_col_arr[1]));
+		}
+    }
+ 
+    if (vs_combo_condition.substr(0,1) == "@") {
+		if (vs_combo_condition.substr(1,1) == 'N') {
+		    ds_combo_out_bds.insertRow(0);
+            ds_combo_out_bds.setColumn(0,"CODE","");
+            ds_combo_out_bds.setColumn(0,"DATA","");
+		}    
+		else if (vs_combo_condition.substr(1,1) == 'A') {
+                ds_combo_out_bds.insertRow(0);
+                ds_combo_out_bds.setColumn(0,"CODE","%");
+                ds_combo_out_bds.setColumn(0,"DATA",this.gf_get_trans_meta_word("전체"));
+         }       
+    }
+    
+	var objDelete = this.removeChild(vs_ds_combo_para_bds);
+
+}
+// 콜백 함수 처리 
+this._ff_callback_combo_grd =  function(sSvcID, ErrorCode, ErrorMsg)
+{
+	if (ErrorCode < 0) {
+		alert("svcid= " + sSvcID + "  content=" + ErrorMsg);
+	}
+
+}
+
+/*******************************************************************************
+ * 함수명     : gf_tab_trans
+ *         arg_09:     인풋 스트림
+ *       
+ * 기능 	: arg_09로 넘어온 스트링에서 09인 텝키를 제거한다.   
+ *  ********************************************************************************/
+this.gf_tab_trans = function(arg_09)
+{
+	var i;
+	var vs_txt = arg_09; 
+
+	var vs_txt_last="";
+	for (var i=0; i < arg_09.length; i++) {
+		if (vs_txt.charCodeAt(i) == 9) {
+			vs_txt_last += " ";
+		}
+		else {
+			vs_txt_last += vs_txt.substr(i,1);
+		}
+	}
+	return vs_txt_last;
+}
+/*******************************************************************************
+ * 함수명     : gf_argment_save
+ *  
+ *       this.gf_argment_save (this.div_head);
+ *       예) this.gf_argment_save(this.div_head);
+ *      아규먼트 
+ *           1. arg_div    : divsion  오브젝틀       예) this.div_head
+ * 기능 	: 넘겨온 divsion 오브젝트 값 저장 (조건 값 저장)  
+ *  ********************************************************************************/
+this.gf_argment_save = function(arg_div,arg_db,arg_pgmid)
+{
+    var vs_pgrmid;
+    if (NXCore.isEmpty(arg_pgmid)) 
+        vs_pgrmid = NXCore.getParameter(this, CC_FORM_WINID);    // window id  구하기
+    else 
+        vs_pgrmid = arg_pgmid;
+    var vs_userid = application.gvs_userid;                      // user id
+ 
+
+    objDelete = this.removeChild("ds_argment_return_bds");        // 저장할 dataset  오브젝트 일단 삭제 
+    var vs_ds_argment_return_bds  = "ds_argment_return_bds";    //  컴포넌트 값을 저장하기위한 dataset
+    
+    var ds_argment_return_bds = new Dataset;                    // 데이타셋을 동적으로 생성 
+    ds_argment_return_bds.set_name(vs_ds_argment_return_bds);
+    var vi_idx =  this.addChild(ds_argment_return_bds.name, ds_argment_return_bds); 
+ 
+     ds_argment_return_bds.addColumn( "L_USERID" , "string", 20 );                // 유저아이디
+     ds_argment_return_bds.addColumn( "WINDOW_NAME" , "string", 40 );             // WINDOW 명
+     ds_argment_return_bds.addColumn( "DW_VALUE01" , "string", 400 );             // 컴포넌트 명
+     ds_argment_return_bds.addColumn( "DW_VALUE02" , "string", 400 );             //  컴포넌트별 값
+   
+    var vi_row;
+    
+     for ( var i=0; i<arg_div.components.length; i++ ) {
+        if ( arg_div.components[i].hasOwnProperty("value") ) {     // 컴퍼넌트중 value 프로퍼티가 있는것만 찾기
+
+                vi_row = ds_argment_return_bds.addRow();
+
+                ds_argment_return_bds.setColumn(vi_row, "L_USERID", vs_userid);
+                ds_argment_return_bds.setColumn(vi_row, "WINDOW_NAME", vs_pgrmid);
+                ds_argment_return_bds.setColumn(vi_row, "DW_VALUE01", arg_div.components[i].name);
+                ds_argment_return_bds.setColumn(vi_row, "DW_VALUE02", arg_div.components[i].value);
+            }
+
+    }
+    // divisin 속에 또 division 이 존재 할경우 그 sub division속의 값을 저장
+    //  최상위와 그하위      단 2레베만 처리 가능하며 division > division > division 은 처리하지 못함.
+    var vs_sub_div_name;   
+     for ( var i=0; i<arg_div.components.length; i++ ) {
+        if (arg_div.components[i] == "[object Div]") {
+            vs_sub_div_name=arg_div.components[i].id;
+            for (var j=0; j < arg_div.components[i].components.length; j++) {
+                if ( arg_div.components[i].components[j].hasOwnProperty("value") ) {     // 컴퍼넌트중 value 프로퍼티가 있는것만 찾기
+                    vi_row = ds_argment_return_bds.addRow();
+                    ds_argment_return_bds.setColumn(vi_row, "L_USERID", vs_userid);
+                    ds_argment_return_bds.setColumn(vi_row, "WINDOW_NAME", vs_pgrmid);
+                    ds_argment_return_bds.setColumn(vi_row, "DW_VALUE01", vs_sub_div_name + "." + arg_div.components[i].components[j].name);
+                    ds_argment_return_bds.setColumn(vi_row, "DW_VALUE02", arg_div.components[i].components[j].value);
+                }
+            }                
+
+        }
+   }                 
+              
+    var v_SvcAct,v_InDataset,v_outdataset,v_Argument;
+    svc_id = "ARGMENT_SAVE";
+    v_SvcAct        = "Common/common_argment_save_1tr.jsp";    // 
+
+    if (!NXCore.isEmpty(arg_db))
+       v_SvcAct += "?dbconn=" + arg_db;
+       
+    v_InDataset        =  "input1=ds_argment_return_bds:A ";     // 반드시 기술할것
+    v_outdataset    =  "";    
+    v_Argument        = "ARG_USERID=" + vs_userid + " " + "ARG_WINDOW_NAME=" + vs_pgrmid;  
+
+
+    this.gf_Transaction_invar_sync(svc_id, v_SvcAct, v_InDataset, v_outdataset,v_Argument, "_argment_CallBack_sync");    
+
+    var objDelete = this.removeChild("ds_argment_return_bds");    
+
+    return ;
+} 
+// 콜백 함수 처리 
+this._argment_CallBack_sync =  function(sSvcID, ErrorCode, ErrorMsg)
+{
+
+	if (ErrorCode < 0) {
+		alert("svcid= " + sSvcID + "  content=" + ErrorMsg);
+	}
+
+}
+
+/*******************************************************************************
+ * 함수명     : gf_argment_load
+ *  
+ *       this.gf_argment_save (this.div_head);
+ *       예) this.gf_argment_save(this.div_head);
+ *      아규먼트 
+ *           1. arg_div    : divsion  오브젝틀       예) this.div_head
+ * 기능 	: 조건값인 division 값을 조회한다 (이전에 gf_argment_save(this.div_head)  로 저장된값 조회) 
+ *  ********************************************************************************/
+this.gf_argment_load = function(arg_div,arg_db,arg_pgmid)
+{
+    var vs_pgrmid;
+    if (NXCore.isEmpty(arg_pgmid)) 
+        vs_pgrmid = NXCore.getParameter(this, CC_FORM_WINID);
+    else vs_pgrmid = arg_pgmid;
+    var vs_userid = application.gvs_userid;
+ 
+    
+    objDelete = this.removeChild("ds_argment_return_bds");    // 조회할 데이타셋 오브젝트 삭제
+    var vs_ds_argment_return_bds  = "ds_argment_return_bds";
+    
+    var ds_argment_return_bds = new Dataset;                // 조회할 데이타셋 오브젝트 동적 
+    ds_argment_return_bds.set_name(vs_ds_argment_return_bds);
+    var vi_idx =  this.addChild(ds_argment_return_bds.name, ds_argment_return_bds); 
+     
+    var v_SvcAct,v_InDataset,v_outdataset,v_Argument;
+    svc_id = "ARGMENT_LOAD";
+    v_SvcAct        = "Common/common_argment_load_1q.jsp";    // 
+
+    if (!NXCore.isEmpty(arg_db))
+       v_SvcAct += "?dbconn=" + arg_db;
+       
+    v_InDataset        =  "ds_para=ds_argment_return_bds";     // 반드시 기술할것
+    v_OutDataset    = "ds_argment_return_bds=output1";  // 반드시 output1으로 기술할것
+
+    v_Argument        = "ARG_USERID=" + vs_userid + " " + "ARG_WINDOW_NAME=" + vs_pgrmid;  
+
+
+    this.gf_Transaction_invar_sync(svc_id, v_SvcAct, v_InDataset, v_OutDataset,v_Argument, "_argment_CallBack_sync");
+
+    if ( ds_argment_return_bds.rowcount  < 0)    {
+        objDelete = this.removeChild("ds_argment_return_bds");
+        return false;
+    }
+    
+    var nRow;
+    for ( var i=0; i<arg_div.components.length; i++ ) {
+        if ( arg_div.components[i].hasOwnProperty("value") ) {
+            arg_div.components[i].set_value("");
+
+            nRow = ds_argment_return_bds.findRow( "DW_VALUE01", arg_div.components[i].id );
+            if (nRow >=0) {
+
+                var comp = ds_argment_return_bds.getColumn(nRow, "DW_VALUE01");
+                var val = ds_argment_return_bds.getColumn(nRow, "DW_VALUE02");
+                arg_div.components[comp].set_value(val);
+            }
+        }
+    }
+    
+     // divisin 속에 또 division 이 존재 할경우 그 sub division속의 값을 저장
+    //  최상위와 그하위      단 2레베만 처리 가능하며 division > division > division 은 처리하지 못함.
+
+     var vs_sub_div_name;   
+     var vi_div_find_pos=-1;
+     for ( var i=0; i<arg_div.components.length; i++ ) {
+        if (arg_div.components[i] == "[object Div]") {
+            vs_sub_div_name=arg_div.components[i].id;
+            for (var j=0; j < arg_div.components[i].components.length; j++) {
+                if ( arg_div.components[i].components[j].hasOwnProperty("value") ) {     // 컴퍼넌트중 value 프로퍼티가 있는것만 찾기
+                    arg_div.components[i].components[j].set_value("");
+                    
+                    nRow = ds_argment_return_bds.findRow( "DW_VALUE01", vs_sub_div_name + "." + arg_div.components[i].components[j].name );
+                    if (nRow >=0) {
+                    
+                        var comp = ds_argment_return_bds.getColumn(nRow, "DW_VALUE01");
+                        var vi_div_find_pos = comp.indexOf(".");
+                        if (vi_div_find_pos >= 0) {
+                            comp = comp.substr(vi_div_find_pos+1);
+                            var val = ds_argment_return_bds.getColumn(nRow, "DW_VALUE02");
+                            arg_div.components[i].components[comp].set_value(val);
+                        }
+                    }
+                }                
+            }
+        }
+    }                 
+    var objDelete = this.removeChild("ds_argment_return_bds");    
+    return true;
+}  
+// 메타 DATASET에서 한글 변환 pdh
+this.gf_get_trans_meta_word = function(meta_code) 
+{
+	if ( application.gv_lang == "KR" )  return meta_code;
+	
+	var nRow = application.gds_language.findRow("META_CODE", meta_code.replace(/\s/gi, ''));
+	if ( nRow > 0 ) {
+		var newText = application.gds_language.getColumn(nRow, "META_NAME");
+		if (!NXCore.isEmpty(newText)) {
+		    return newText;
+		}
+    }
+    return meta_code;
+}]]></Script>

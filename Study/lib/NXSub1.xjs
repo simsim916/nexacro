@@ -1,0 +1,1058 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Script type="xscript5.0"><![CDATA[// this.gvi_ErrorCode=-1;     // 콜백루틴의 에러코드        싱크트란잭션일경우 사용
+// this.gvs_ErrorMsg="";      //// 콜백루틴의 에러메세지    싱크트란잭션일경우 사용
+
+var vi_ErrorCode
+
+this.gf_showMain2 = function(strMenuId, objArgs, options) {
+	options = NXCore.setDefaults(options, {opened:'focus'} );
+	
+// 	// 1) 메뉴 찾기
+// 	var nMenuRow = application.gds_menu.findRow("SEQ_KEY_PGRM", strMenuId);
+// 	if( nMenuRow == -1 ) {
+// 		return NXCore.alert("메뉴가 존재하지 않습니다. {}", strMenuId, null, "error");
+// 	}
+	// 2) Screen 정보 찾기
+	
+	var frameData = {};
+		frameData[CC_FORM_WINID] 	= "WIN" + application.gds_menu.getColumn(nMenuRow, "SEQ_KEY_PGRM");
+		frameData[CC_FORM_URL] 		= application.gds_menu.getColumn(nMenuRow, "SCRN_URL");
+		frameData[CC_FORM_TITLE] 	= application.gds_menu.getColumn(nMenuRow, "MENU_NM_KR");
+		frameData[CC_FORM_MENUID]	= application.gds_menu.getColumn(nMenuRow, "SEQ_KEY_PGRM");
+		frameData[CC_FORM_MENU_NAVI]	= application.gds_menu.getColumn(nMenuRow, "MENU_NAVI");
+	
+	if( NXCore.isSupport(NXCore.MDI) && NXCore.getFrame("workframe") ) {
+		var findFrame = NXCore.getFrame("workframe").frames[frameData[CC_FORM_WINID]];
+		if( findFrame != null ) {
+			try {
+				// 전달된 파라메타 재 설정
+				NXCore.setArgument(findFrame, frameData);
+				NXCore.setArgument(findFrame, objArgs);
+				
+				if( options.opened == "focus") {
+				
+					findFrame.form.setFocus();
+				} else {
+					// 2016.01.28 KSM
+					//findFrame.form.div_work.ff_load(findFrame.form);
+					findFrame.form.div_base.div_work.ff_load(findFrame.form);
+					
+// 					var vs_findForm = NXCore.getFrame("workframe").frames[frameData[CC_FORM_WINID]].form;
+// 					vs_findForm.div_base.div_work.ff_load(vs_findForm);
+				}
+				NXCore.getFrame("tabframe").form.ff_MDIOnactivate(findFrame.form);
+		
+			} catch(err) {
+				logger.debug(err.message);
+			}
+		
+			return null;
+		}
+
+		var newFrame = new ChildFrame();
+		newFrame.init(frameData[CC_FORM_WINID], 0, 0, -1, -1);	
+		newFrame.set_formurl("frame::FRMWRKM01.xfdl");
+		newFrame.set_autosize(false);
+		newFrame.set_showtitlebar(false);
+		newFrame.set_resizable(true);
+		newFrame.set_scrollbars("none");
+		newFrame.style.set_border("0 solid #1f3253");
+		newFrame.style.set_bordertype("normal 0 0");
+		newFrame.set_dragmovetype("normal");
+		newFrame.set_showcascadetitletext(false);
+		newFrame.style.set_background('white');
+		newFrame.set_openstatus("maximize");
+		newFrame.set_titletext(frameData[CC_FORM_TITLE]);
+
+		// 공통 Arguments 추가
+		NXCore.clearArgument(newFrame);
+		NXCore.setArgument(newFrame, frameData);
+		// 사용자 Arguments 추가
+		NXCore.setArgument(newFrame, objArgs);
+		NXCore.getFrame("workframe").addChild(frameData[CC_FORM_WINID], newFrame);
+		newFrame.show();
+	}
+}
+
+// 
+this.gf_grd_col_del = function(arg_grd)
+{
+	for( var i = arg_grd.getCellCount("head") ; i >= 0 ; i--){	
+		arg_grd.deleteContentsCol(i);    // icolumn을 삭제한다. 
+	}
+	arg_grd.deleteContentsRow("head",0);
+	arg_grd.deleteContentsRow("body",0);
+	arg_grd.deleteContentsRow("summ",0);		
+} 
+ 
+/*****************************************************************************************
+ * 함  수  명	: 	gf_grd_col_set 
+ * 아규먼트 	: 	arg_grid : 그리드 명  예) this.grd_List
+ *              :   arg_col_nm : 순서 정의
+ * 기      능	: 	해당 칼럼을 순서 이동...
+ *****************************************************************************************/
+this.gf_grd_col_set = function(arg_grd, arg_col_nm)
+{
+	arg_grd.appendContentsRow("head");
+	arg_grd.appendContentsRow("body");
+	arg_grd.appendContentsRow("summ");	
+	
+	var vi_len = arg_col_nm.length;	
+	for (var i=0; i < vi_len; i++) {
+		// trace(arg_col_nm[i]);
+		
+		var nCol = arg_grd.appendContentsCol();	
+		
+ 		arg_grd.setCellProperty("Head",nCol ,"autosizecol",'limitmax');
+ 		arg_grd.setCellProperty("Body",nCol ,"autosizecol",'limitmin');
+ 		arg_grd.setCellProperty("Body",nCol ,"padding",'0 0 0 10');	
+ 		
+ 		arg_grd.setCellProperty("Head",nCol ,"text",arg_col_nm[i]);
+ 		arg_grd.setCellProperty("Body",nCol ,"text","bind:"+arg_col_nm[i]);
+ 		if ( nCol == 1 ){
+			arg_grd.setCellProperty("Summ",nCol ,"text",'Total');
+		}
+ 		if ( nCol == 2 ){
+			arg_grd.setCellProperty("Summ",nCol ,"text","expr:dataset.getRowCount()+' 건'");  
+		} 		
+	}
+} 
+
+
+/*****************************************************************************************
+ * 함  수  명	: 	gf_move_cell_rtn
+ * 아규먼트 	: 	arg_grid : 그리드 명  예) this.grd_List
+ *              :   2016.05 
+ * 기      능	: 	해당 칼럼을 순서 이동...
+ *****************************************************************************************/
+ 
+//   this.ff_move_cell_rtn(this.grid_Master, "form_colid", "to_colid", 1);   마지막 1은 summary 로의 count이다. 
+this.gf_move_cell_rtn = function(arg_grid, arg_from_colid, arg_to_colid, arg_summ_row_count)
+{
+	var vi_from_cell = arg_grid.getBindCellIndex("body", arg_from_colid);
+	if (vi_from_cell == -1) {
+		alert("from colid 가 없습니다");
+		return -1;
+	}
+	var vi_to_cell = arg_grid.getBindCellIndex("body", arg_to_colid);
+	if (vi_to_cell == -1) {
+		alert("to colid 가 없습니다");
+		return -1;
+	}
+	var vs_type_info = ["size", "text", "displaytype", "text" ,"editfilter" ,"align" ,"background" , "background2" , "selectbackground", "mask" ];
+	var vs_type_head_info = [];
+	var vs_type_body_info = [];
+	var vs_type_summ_info = [];
+	// from col의 정보를 보관한다.
+    var vi_len = vs_type_info.length;
+    var vi_cell_Count_summ = arg_grid.getCellCount("Summ");
+    vi_cell_Count_summ = vi_cell_Count_summ / arg_summ_row_count;
+
+    for (var i=0; i < vi_len; i++) {
+        if (vs_type_info[i] == 'size') {
+			vs_type_body_info [i] = arg_grid.getRealColSize( vi_from_cell, true );
+            continue;
+        }
+		vs_type_head_info [i] = arg_grid.getCellProperty("Head",vi_from_cell,vs_type_info[i]);
+		vs_type_body_info [i] = arg_grid.getCellProperty("Body",vi_from_cell,vs_type_info[i]);
+		vs_type_summ_info [i] = arg_grid.getCellProperty("Summ",vi_from_cell,vs_type_info[i]);
+		if (arg_summ_row_count > 1) {
+			for (var j = 1; j < arg_summ_row_count; j++) {
+				vs_type_summ_info [i + (vi_len * j)] = arg_grid.getCellProperty("Summ",vi_from_cell + (vi_cell_Count_summ * j),vs_type_info[i]);
+			}	
+		}
+    }
+
+    arg_grid.deleteContentsCol(vi_from_cell);    // from column을 삭제한다. 
+    
+	var vi_to_cell = arg_grid.getBindCellIndex("body", arg_to_colid);
+	if (vi_to_cell == -1) {
+		alert("to colid 가 없습니다");
+		return -1;
+	}
+
+    arg_grid.insertContentsCol(vi_to_cell);
+    
+	for (var i=0; i < vi_len; i++) {
+        if (vs_type_info[i] == 'size') {
+			vs_type_body_info [i] = arg_grid.setRealColSize(vi_to_cell, vs_type_body_info [i]);
+            continue;
+        }
+	    arg_grid.setCellProperty("Head",vi_to_cell,vs_type_info[i],vs_type_head_info [i]);
+	    arg_grid.setCellProperty("Body",vi_to_cell,vs_type_info[i],vs_type_body_info [i]);
+	    arg_grid.setCellProperty("Summ",vi_to_cell,vs_type_info[i],vs_type_summ_info [i]);
+		if (arg_summ_row_count > 1) {
+			for (var j = 1; j < arg_summ_row_count; j++)
+			    arg_grid.setCellProperty("Summ",vi_to_cell + (vi_cell_Count_summ * j) ,vs_type_info[i],vs_type_summ_info [i + (vi_len * j)]);
+		}
+	    
+	}
+}
+
+
+/*****************************************************************************************
+ * 함  수  명	: 	gf_make_dataset_for_sql
+ * 아규먼트 	: 	arg_Sql : Sql
+ *              :   2016.06.09 	KSM
+ * 기      능	: 	SQL  dataset 생성.
+ *****************************************************************************************/
+this.gf_make_dataset_for_sql = function( arg_Sql )
+{
+
+	if(NXCore.isEmpty(arg_Sql) || arg_Sql == '') return;
+
+    var objDelete = this.removeChild("ds_Zselect_TemP");	
+    var ds_Zselect_TemP = new Dataset;
+    var vi_idx =  this.addChild("ds_Zselect_TemP", ds_Zselect_TemP); 
+    ds_Zselect_TemP.clearData();
+	
+ 	
+	this.gf_SelectSql_sync("ds_Zselect_TemP : " + arg_Sql , "ds_Zselect_TTT","ff_Callback_sync");
+	return this.ds_Zselect_TemP.saveXML() ; 	
+
+// 	this.gf_SelectSql_sync("ds_Test : " + vs_sql , "TEST_SELECT","ff_Callback_sync");
+// 	this.Div_Aside2.txt_Area2.set_value( this.ds_Test.saveXML() );
+
+
+}
+
+/*****************************************************************************************
+ * 함  수  명	: 	gf_make_dataset_for_sqlz
+ * 아규먼트 	: 	arg_Sql : Sql
+ *              :   2016.06.09 	KSM
+ * 기      능	: 	SQL  dataset 생성.
+ *****************************************************************************************/
+this.gf_make_dataset_for_sqlz = function( arg_Sql )
+{
+
+	if(NXCore.isEmpty(arg_Sql) || arg_Sql == '') return;
+
+    var objDelete = this.removeChild("ds_Zselect_TemP");	
+    var ds_Zselect_TemP = new Dataset;
+    var vi_idx =  this.addChild("ds_Zselect_TemP", ds_Zselect_TemP); 
+    ds_Zselect_TemP.clearData();
+	
+ 	
+	this.gf_SelectSql_sync("ds_Zselect_TemP : " + arg_Sql , "ds_Zselect_TTT","ff_Callback_sync");
+	return this.ds_Zselect_TemP.saveXML() ; 	
+
+// 	this.gf_SelectSql_sync("ds_Test : " + vs_sql , "TEST_SELECT","ff_Callback_sync");
+// 	this.Div_Aside2.txt_Area2.set_value( this.ds_Test.saveXML() );
+
+
+}
+
+
+
+
+/*****************************************************************************************
+ * 함  수  명	: 	gf_class_def_set
+ * 아규먼트 	: 	obj : Grd, Div   예) this.grd_List, 
+ *              :   2017.08.31 KSM 
+ * 기      능	: 	해당 grid 중 class_object 정의에 따라 Setting 
+ *****************************************************************************************/
+this.gf_class_def_set = function(obj, arg_Super, arg_Sub, arg_ds, arg_gbn )
+{
+
+	
+	var vs_sub_class, vs_super_class ;
+	var vs_arg;
+	var lb_lock_chk = true; 
+	
+	vs_super_class = arg_Super;	
+	vs_sub_class = arg_Sub;
+	
+	if (NXCore.isEmpty(vs_super_class)){
+		vs_super_class = '*';
+	}		
+	if (NXCore.isEmpty(vs_sub_class)){
+		vs_sub_class = '*';
+	}
+
+	var vSql;
+    var objDelete = this.removeChild("ds_select_Class");	
+    // var ds_select_Class = new Dataset;
+    ds_select_Class = new Dataset;
+    var vi_idx =  this.addChild("ds_select_Class", ds_select_Class); 
+    ds_select_Class.clearData();
+ 	
+	vSql = ""; 
+	vSql += "	    SELECT SUPER_CLASS     ";
+	vSql += "	          ,SUB_CLASS     ";
+	vSql += "	          ,CLASS_ID     ";
+	vSql += "	          ,DECODE(CLASS_NM,'.','',CLASS_NM)  	as CLASS_NM   ";
+	vSql += "	          ,CLASS_SEQ     ";
+	vSql += "	          ,COLUMN_ID     ";
+	vSql += "	          ,DB_TYPE     ";
+	vSql += "	          ,DB_REQUIRED     ";
+	vSql += "	          ,GBIND     ";
+	vSql += "	          ,GTYPE     ";
+	vSql += "	          ,GSIZE     ";
+	vSql += "	          ,GMASK     ";
+	vSql += "	          ,GCOLOR     ";
+	vSql += "	          ,GBACKG     ";
+	vSql += "	          ,GALIGN     ";
+	vSql += "	          ,GINIT     ";
+	vSql += "	          ,GCSS     ";
+	vSql += "	          ,GREAD     ";
+	vSql += "	          ,GVISIBLE     ";
+	vSql += "	          ,FLAG     ";
+	vSql += "	          ,A_DATE     ";
+	vSql += "	          ,A_NUM     ";
+	vSql += "	          ,REMARK     ";
+	vSql += "	          ,IMGPATH     ";	
+	vSql += "	      FROM Z9_CLASS_OBJECT     ";
+	vSql += "	     WHERE SUPER_CLASS = '" + vs_super_class +"'     ";
+	vSql += "	       AND SUB_CLASS = '" + vs_sub_class +"'     ";
+	vSql += "      ORDER BY SUPER_CLASS, SUB_CLASS, NVL(CLASS_SEQ,0), CLASS_ID  ";
+ 	
+	 this.gf_SelectSql_sync("ds_select_Class : " + vSql , "ds_select_Class","ff_Callback_sync");
+
+	var vs_bind;
+	var vs_class_nm, vs_gbind, vs_gtype, vs_gsize, vs_gmask, vs_gcolor, vs_required; 
+	var vs_gbackg, vs_galign, vs_ginit, vs_gcss, vs_gread, vs_gvisible, vs_flag, vs_imgpath;
+	var vn_row; 
+	var bSucc;
+	
+	
+		
+	if ( NXCore.typeof(obj) == "grid" ) {
+		var objGrd = obj;
+		
+		// grid 초기화 
+		objGrd.set_formats(objGrd.formats);
+		
+			for ( var i=0; i < objGrd.getCellCount("body"); i++ ) {
+				vs_bind = this.gf_GetCellBind(obj, i ,'Body');
+				
+				vn_row = ds_select_Class.findRow( "COLUMN_ID", vs_bind );
+				if ( vn_row < 0 ) continue ;
+				
+				vs_class_nm		= ds_select_Class.getColumn( vn_row, "CLASS_NM" );
+				vs_gbind 		= ds_select_Class.getColumn( vn_row, "GBIND" );
+				vs_gtype 		= ds_select_Class.getColumn( vn_row, "GTYPE" );
+				vs_gsize 		= ds_select_Class.getColumn( vn_row, "GSIZE" );
+				vs_gmask 		= ds_select_Class.getColumn( vn_row, "GMASK" );
+				vs_gcolor 		= ds_select_Class.getColumn( vn_row, "GCOLOR" );
+				vs_gbackg 		= ds_select_Class.getColumn( vn_row, "GBACKG" );
+				vs_galign 		= ds_select_Class.getColumn( vn_row, "GALIGN" );
+				vs_ginit 		= ds_select_Class.getColumn( vn_row, "GINIT" );	
+				vs_gcss 		= ds_select_Class.getColumn( vn_row, "GCSS" );
+				vs_gread 		= ds_select_Class.getColumn( vn_row, "GREAD" );
+				vs_gvisible 	= ds_select_Class.getColumn( vn_row, "GVISIBLE" );	
+				vs_required 	= ds_select_Class.getColumn( vn_row, "DB_REQUIRED" );	
+				vs_flag			= ds_select_Class.getColumn( vn_row, "FLAG" );
+				vs_imgpath		= ds_select_Class.getColumn( vn_row, "IMGPATH" );
+				 
+				
+							
+				// head text
+				if (!NXCore.isEmpty(vs_class_nm)){
+					objGrd.setCellProperty("head", i, "text", vs_class_nm );
+				}
+				
+				// type
+				if (!NXCore.isEmpty(vs_gtype)){
+					if ( vs_gtype == 'NUMBER' ) {
+						objGrd.setCellProperty("body", i, "displaytype", 'number' );
+						objGrd.setCellProperty("body", i, "edittype", 'masknumber' );
+						objGrd.setCellProperty("body", i, "mask", '#,### ' );
+						objGrd.setCellProperty("body", i, "editautoselect", true );
+					
+					} else if ( vs_gtype == 'CHK' ) {
+					
+						objGrd.setCellProperty("body", i, "displaytype", 'checkbox' );
+						objGrd.setCellProperty("body", i, "edittype", 'checkbox' );
+					
+					} else if ( vs_gtype == 'DATE' ) {
+						objGrd.setCellProperty("body", i, "edittype", 'date' );
+						
+						vs_arg =  "expr:"+ vs_bind +">0?'date':'normal'" ;
+						objGrd.setCellProperty("body", i, "displaytype", vs_arg );
+						
+						vs_arg =  "expr:"+ vs_bind +">0?'yyyy-MM-dd':'' " ;
+						objGrd.setCellProperty("body", i, "mask", vs_arg );
+					
+					} else if ( vs_gtype == 'TEXT' ) {
+					
+						objGrd.setCellProperty("body", i, "displaytype", 'text' );
+						objGrd.setCellProperty("body", i, "edittype", 'normal' );
+						
+						objGrd.setCellProperty("body", i, "padding", ' 0 4 0 4 ' );
+					} else if ( vs_gtype == 'BUTTON'  ) {
+					
+						objGrd.setCellProperty("body", i, "displaytype", 'button' );
+						objGrd.setCellProperty("body", i, "edittype", 'button' );
+						objGrd.setCellProperty("body", i, "text", '@File' );
+						objGrd.setCellProperty("body", i, "padding", ' 0 4 0 4 ' );										
+								
+					} else  {
+						objGrd.setCellProperty("body", i, "displaytype", 'normal' );
+						objGrd.setCellProperty("body", i, "edittype", 'normal' );
+						
+						objGrd.setCellProperty("body", i, "padding", ' 0 4 0 4 ' );				
+					}
+				}
+
+				// read
+				if (!NXCore.isEmpty(vs_gread)){
+					if ( vs_gread == '1' ) {
+						objGrd.setCellProperty("body", i, "edittype", 'none' );
+					}
+				}
+				
+				// size
+				if (!NXCore.isEmpty(vs_gsize)){
+					bSucc = objGrd.setRealColSize(-1, i, vs_gsize, false );
+				}				
+				
+				// align
+				if (!NXCore.isEmpty(vs_galign)){
+					if ( vs_galign == 'LEFT' ) {
+						objGrd.setCellProperty("body", i, "align", 'left middle' );
+					} else if ( vs_galign == 'CENTER' ) {
+						objGrd.setCellProperty("body", i, "align", 'center middle' );
+					} else if ( vs_galign == 'RIGHT' ) {
+						objGrd.setCellProperty("body", i, "align", 'right middle' );
+					}
+				}			
+				
+				// visible
+				if (!NXCore.isEmpty(vs_gvisible)){
+					if ( vs_gvisible != '1' ) {
+		 			 	bSucc = objGrd.setRealColSize(-1, i, '0', false );
+					}	
+				}	
+								
+				// mask
+				if (NXCore.isEmpty(vs_gmask)){
+					objGrd.setCellProperty("body", i, "edittype", 'normal' );
+					objGrd.setCellProperty("body", i, "mask", '' );				
+				} else {
+					objGrd.setCellProperty("body", i, "edittype", 'mask' );
+					objGrd.setCellProperty("body", i, "mask", vs_gmask );
+				}									
+								
+				
+				// combo ddw set
+				if ( vs_gtype == 'COMBO' ) {
+						vs_arg = vs_super_class +"|"+ vs_sub_class + "|" + vs_bind;
+						this.gf_combo_grd_Async_sub1( objGrd ,  i ,"co_dddw_z9_code_object", vs_arg ,0);
+				}
+				
+
+						
+				// flag   = PK & 필수
+				if (!NXCore.isEmpty(vs_flag)){
+				
+					var vs_get_Property = objGrd.getCellProperty("body", i, "edittype" );
+					var vs_set_Property = "expr:dataset.getRowType(currow) ==2 ? '"+ vs_get_Property + "': 'none' ";				
+					
+					if ( vs_get_Property != 'none' ) {
+						if ( vs_flag == 'SYS' ) {
+							objGrd.setCellProperty("body", i, "edittype", vs_set_Property);
+						} else if ( vs_flag == 'PK' ) {
+							// if ( vs_required == '1' ) {
+								
+								objGrd.setCellProperty("body", i, "edittype", vs_set_Property);
+								if ( lb_lock_chk ) {
+									for( k=0; k<=i;  k++ ){
+										bSucc = objGrd.setFormatColProperty(k, "band", "left");
+										lb_lock_chk = false;
+									}								
+								}
+						}
+					}
+				}	
+
+				if ( arg_gbn == 'R' ){
+				
+					objGrd.setCellProperty("body", i, "edittype", 'none');
+
+				}
+				
+				
+				// Fix 고정값 
+				if (!NXCore.isEmpty(vs_ginit)){
+					objGrd.setCellProperty("head", i, "text", '▼ '+ vs_class_nm);
+					
+					// 2018.05.17 우선 고정값 적용보류
+// 					objGrd.setCellProperty("body", i, "text", vs_ginit);
+// 					objGrd.setCellProperty("body", i, "edittype", 'none');
+				}
+				
+				
+				//---2018.05.30 마지막 재확인.
+				if ( vs_gtype == 'CHK' ) {
+					
+					objGrd.setCellProperty("body", i, "displaytype", 'checkbox' );
+					objGrd.setCellProperty("body", i, "edittype", 'checkbox' );	
+								
+				}
+				
+		}		
+
+	} else if ( NXCore.typeof(obj) == "div" ) {
+
+		trace( obj.id  );	
+
+	// div
+		// bindig dateset()
+		var vds = arg_ds ;
+		if (NXCore.isEmpty(vds)) return ;
+	
+		var objDiv = eval("this." +obj.id);
+		var objSta;
+		var vs_column_id;
+		 
+		var objStatic = [];
+		var objEdit = [];
+		var objBind = []; 
+		
+		var objEditx0, objEditx1, objEditx2, objEditx3, objEditx4, objEditx5, objEditx6;
+		var vs_rtn;
+		
+		
+		var sizeWidth = objDiv.width;
+		var sizeHeight = ( this.getOwnerFrame().height - objDiv.top - 80 );
+		
+
+		// 초기 init
+		var init_left = 20;
+		var init_top = 10;
+		var init_width = 150;	
+		var init_height = 20;
+		var init_right = null;
+		var init_bottom = null;
+		var init_gap = 4;
+		
+		var vn_left = init_left;
+		var vn_top = init_top;
+		var vn_width = init_width;
+		var vn_height = init_height;
+		var init_objwidth = 300;
+		
+		var vi_idx;
+		var vs_edit_id;
+		var obj_edit;
+
+		var arrCpnt  = objDiv.components ;
+		var nCpntCnt = arrCpnt.length;
+		for ( var k = nCpntCnt; k >= 0; k-- ) {
+			if ( NXCore.typeof(arrCpnt[k]) == 'static' ) {
+				vs_rtn = objDiv.removeChild(arrCpnt[k].id);
+			}
+		}		
+ 		var arrCpnt2  = objDiv.components ;
+ 		var nCpntCnt2 = arrCpnt2.length;		
+ 		for ( var l=0; l < nCpntCnt2; l++ ) {
+			// trace(l +'/'+ arrCpnt2[l].id +' : ' + NXCore.typeof(arrCpnt2[l]));
+			arrCpnt2[l].set_visible(false);
+ 		}
+ 		
+
+		
+// 		var bds = this.binds 
+// 		
+// // 		trace(bds);
+// 		for ( var b=0; b < bds.length; b++ ) {
+// 			trace(b + " >>>>>>>>>>>>"  +bds.length);
+// 			trace(b + " id >> : " + bds[b].id);
+// 			trace(b + " compid >> : " + bds[b].compid);
+// 			trace(b + " propid >> : " + bds[b].propid);
+// 			trace(b + " datasetid >> : " + bds[b].datasetid);
+// 			trace(b + " columnid >> : " + bds[b].columnid);
+// 		}
+	
+		
+ 		
+ 		var j2 = 0;
+		for ( var j=0; j < ds_select_Class.rowcount ; j++ ) {
+
+			vs_class_nm		= ds_select_Class.getColumn( j, "CLASS_NM" );
+			vs_column_id	= ds_select_Class.getColumn( j, "COLUMN_ID" );
+			
+			vs_gbind 		= ds_select_Class.getColumn( j, "GBIND" );
+			vs_gtype 		= ds_select_Class.getColumn( j, "GTYPE" );
+			vs_gsize 		= ds_select_Class.getColumn( j, "GSIZE" );
+			vs_gmask 		= ds_select_Class.getColumn( j, "GMASK" );
+			vs_gcolor 		= ds_select_Class.getColumn( j, "GCOLOR" );
+			vs_gbackg 		= ds_select_Class.getColumn( j, "GBACKG" );
+			vs_galign 		= ds_select_Class.getColumn( j, "GALIGN" );
+			vs_ginit 		= ds_select_Class.getColumn( j, "GINIT" );	
+			vs_gcss 		= ds_select_Class.getColumn( j, "GCSS" );
+			vs_gread 		= ds_select_Class.getColumn( j, "GREAD" );
+			vs_gvisible 	= ds_select_Class.getColumn( j, "GVISIBLE" );	
+			vs_required 	= ds_select_Class.getColumn( j, "DB_REQUIRED" );	
+			vs_flag			= ds_select_Class.getColumn( j, "FLAG" );
+
+			if ( vs_gvisible != '1' ) continue;
+			
+			objStatic[j] = new Static();  
+			objStatic[j].init(objDiv+ ".sta_"+j, "absolute", vn_left, vn_top, vn_width, vn_height, init_right, init_bottom);
+			vs_rtn = objDiv.addChild(objDiv+".sta_"+j, objStatic[j]);
+			// text set
+			objStatic[j].set_text(vs_class_nm);
+			
+			// Fix 고정값 
+			if (!NXCore.isEmpty(vs_ginit)){
+				objStatic[j].set_text('▼ '+ vs_class_nm);
+			} 					
+			objStatic[j].show();
+			
+			// edit 
+			if ( vs_gtype == 'NORMAL'  ) {
+			
+				vs_edit_id = obj.id + ".Edit" + this.gf_NumToStr(j,2);
+				obj_edit = eval("this." + obj.id + ".Edit" + this.gf_NumToStr(j,2) );
+
+			} else if ( vs_gtype == 'COMBO' ) {	
+			// combo
+	
+ 				vs_edit_id = obj.id + ".Combo" + this.gf_NumToStr(j2,2);
+				obj_edit = eval("this." + obj.id + ".Combo" + this.gf_NumToStr(j2,2) );					
+ 				
+				vs_arg = vs_super_class +"|"+ vs_sub_class + "|" + vs_column_id;
+				this.gf_combo_head_sync( vds.id, vs_column_id , obj_edit ,"co_dddw_z9_code_object" , vs_arg,0);
+				
+				j2++;
+
+ 			}
+
+			obj_edit.set_left(vn_left+ init_width);
+			obj_edit.set_top(vn_top); 
+			obj_edit.set_width(init_objwidth); 
+			obj_edit.set_height(vn_height); 
+			obj_edit.set_right(init_right); 
+			obj_edit.set_bottom(init_bottom); 
+			
+			
+			// 초기값.
+			obj_edit.set_value(null); 
+			obj_edit.set_cssclass(null); 
+			obj_edit.set_readonly(false);
+				 	
+					
+			// Fix 고정값 
+			if (NXCore.isEmpty(vs_ginit)){
+			
+				objBind[j] = new BindItem(); 
+				vi_idx =  this.addChild('bind_'+j, objBind[j]); 
+				objBind[j].init('bind_'+j ,vs_edit_id, "value",  vds.id ,vs_column_id);
+				objBind[j].bind();
+								
+			} 
+			else {
+				
+				
+				// 2018.05.17 우선 고정값 적용보류
+				objBind[j] = new BindItem(); 
+				vi_idx =  this.addChild('bind_'+j, objBind[j]); 
+				objBind[j].init('bind_'+j ,vs_edit_id, "value",  vds.id ,vs_column_id);
+				objBind[j].bind();				
+				
+				
+// 				obj_edit.set_value(vs_ginit); 
+ 				obj_edit.set_cssclass('readonly'); 
+// 				obj_edit.set_readonly(true); 
+	
+							
+							
+//trace('>>>'+ obj_edit.id + ' : ' + vs_ginit );							
+//trace('222>>>'+ obj_edit.id + ' : ' + obj_edit.value );
+			
+			}
+			
+			
+			
+			
+			obj_edit.set_visible(true);	 			
+			
+			vn_top =  vn_top + vn_height + init_gap;
+		}
+		
+		objDiv.resetScroll();
+	}
+}
+
+
+
+/*콜백 함수 처리*/
+this.ffz_Callback_Async =  function(sSvcID, ErrorCode, ErrorMsg){
+
+	if (ErrorCode < 0) {
+		NXCore.alert(ErrorMsg);
+		return;
+	} 
+	
+	alert(sSvcID);
+	
+	switch (sSvcID)
+	{
+		case "xxx" :
+
+		    break;
+		    
+		case "yyy" :
+
+			break;	    
+		    
+	}
+}
+
+// this.gf_save_class_def(this.grd_List, e.row);
+
+/*****************************************************************************************
+ * 함  수  명	: 	gf_save_class_def
+ * 아규먼트 	: 	obj : dataset   예) this.grd_List, 
+ *              :   2017.09.05 KSM 
+ * 기      능	: 	해당 grid 중 class_object 정의에 따라 Setting 
+ *****************************************************************************************/
+this.gf_save_class_def = function(obj, arg_row , arg_Super, arg_Sub )
+{
+	
+	var vs_bind;
+	var vn_row; 
+	var bSucc;
+
+	var vs_sub_class, vs_super_class ;
+	var vs_arg;
+	var vn_row, vn_col=0;
+	var lb_lock_chk = true; 
+	var vs_sql, vs_sql_chk, vs_sql_del, vs_data;
+	var vs_data2, vs_visible;
+	
+	if (NXCore.isEmpty(arg_row)){
+		arg_row = 0 ;
+	}	
+	
+	vs_super_class = arg_Super;	
+	vs_sub_class = arg_Sub;
+	
+	if (NXCore.isEmpty(vs_super_class)){
+		vs_super_class = '*';
+	}		
+	if (NXCore.isEmpty(vs_sub_class)){
+		vs_sub_class = 'SYS';
+	}
+	
+	
+	if ( NXCore.typeof(obj) == "grid" ) {
+		var objGrd = obj;
+		var vs_DsObj = eval("this." +obj.binddataset);
+	
+		vn_row = arg_row;
+		
+// 		vs_super_class = vs_DsObj.getColumn(vn_row, "SUPER_CLASS");
+// 		vs_sub_class = vs_DsObj.getColumn(vn_row, "SUB_CLASS");
+		
+		// class 정의 여부 확인 후 진행. 
+		vs_sql_chk = " SELECT COUNT(*) AS CNT FROM Z9_CLASS_OBJECT ";	
+		vs_sql_chk +=" WHERE SUPER_CLASS  = '" + vs_super_class + "' ";	
+		vs_sql_chk +="   AND SUB_CLASS  = '" + vs_sub_class + "' ";		
+	
+		var ds_Class_Temp = new Dataset;
+		var vi_idx =  this.addChild("ds_Class_Temp", ds_Class_Temp); 
+		ds_Class_Temp.clearData();
+		
+		this.gf_SelectSql_sync("ds_Class_Temp : " + vs_sql_chk , "ds_Class_Temp","ff_Callback_sync");		
+		
+		if ( ds_Class_Temp.getColumn(0,'CNT') > 0 ) {
+				// 이미정의 되어 있는 CLASS 존재 확인 여부. 
+			if( !application.confirm( "Class정의가 이미 존재! 삭제 후 진행 하시겠습니까?" , "Class 정의확인", "question" ) ){
+				return ;
+			}
+			// 삭제. 
+			vs_sql_del = " DELETE FROM Z9_CLASS_OBJECT   ";
+			vs_sql_del +=" WHERE SUPER_CLASS  = '" + vs_super_class + "' ";	
+			vs_sql_del +="   AND SUB_CLASS  = '" + vs_sub_class + "' ";
+			
+			this.gf_UpdateSql_sync(vs_sql_del , "DELETE_SQL","ff_Callback_sync",0);
+				
+		}
+		
+		vn_col = 0;
+		vs_sql = '';
+		for ( var i=0; i < objGrd.getCellCount("body"); i++ ) {
+			vs_bind = this.gf_GetCellBind(obj, i ,'Body');
+			
+// 			if ( (vs_bind.substr(0,1) == 'A' &&  vs_bind.length == 3) || 
+// 				  vs_bind == 'ITNBR' || vs_bind == 'ITNBR_OLD' 	 ){
+				  
+			if 	(!NXCore.isEmpty(vs_bind)){ 
+			 
+				if ( vs_bind == 'CLASS_ID' ||
+					 vs_bind == '생성' ||
+					 vs_bind == 'DATA_ID' ) continue;
+					 
+				
+				vs_data = vs_DsObj.getColumn(vn_row, vs_bind) ;
+				
+				if ( vn_col > 0 ) {
+					vs_sql += " @#$ "; 
+				}
+				vn_col++;			
+					
+				if (NXCore.isEmpty(vs_data)){
+					vs_data = '.';
+					vs_visible = '0';
+				} else {
+					vs_visible = '1';
+				}					
+				
+				vs_sql +=  "    INSERT INTO Z9_CLASS_OBJECT ( SUPER_CLASS        ";
+                vs_sql += "                          ,SUB_CLASS          ";
+                vs_sql += "                          ,CLASS_ID           ";
+                vs_sql += "                          ,CLASS_NM           ";
+                vs_sql += "                          ,CLASS_SEQ          ";
+                vs_sql += "                          ,COLUMN_ID          ";
+                vs_sql += "                          ,DB_TYPE            ";
+                vs_sql += "                          ,DB_REQUIRED        ";
+                vs_sql += "                          ,GTYPE              ";
+                vs_sql += "                          ,GSIZE              ";
+                vs_sql += "                          ,GALIGN             ";
+                vs_sql += "                          ,GREAD              ";
+                vs_sql += "                          ,GVISIBLE           ";
+                vs_sql += "                          ,FLAG               ";
+             //   vs_sql += "                          ,A_DATE             ";
+                vs_sql += "                          ,REMARK )             ";
+                vs_sql += "  VALUES (  '" + vs_super_class + "'         ";
+                vs_sql += "            ,'" + vs_sub_class + "'          ";
+                vs_sql += "            , '" + vs_bind + "'              ";
+                vs_sql += "            , '" + vs_data + "'              ";
+                vs_sql += "            , " + vn_col + "             	";
+                vs_sql += "            , '" + vs_bind + "'              ";
+                vs_sql += "            , 'CHAR'           ";	//DB_TYPE
+                vs_sql += "            , '0'              ";	//DB_REQUIRED
+                vs_sql += "            , 'NORMAL'         ";	// GTYPE
+                vs_sql += "            , '100'            ";	// GSIZE
+                vs_sql += "            , 'LEFT'           "; 	// GALIGN
+                vs_sql += "            , '0'              ";	// GREAD
+                vs_sql += "            , '" + vs_visible + "'       ";	// GVISIBLE
+                vs_sql += "            , '_'			  ";	// FLAG
+              //  vs_sql += "            , SYSDATE			 		";	// A_DATE
+                vs_sql += "            , '" + vs_data + "' 	)		";	// REMARK
+
+			}						
+		}
+		if ( vn_col > 0 ){
+		
+			this.gf_UpdateSql_sync(vs_sql , "INSERT_SQL","ff_Callback_sync",0);
+			
+			alert('Class Def Create OK!');
+		}	
+	}
+}
+
+
+
+
+
+
+// ---- nx transaction 에서  copy 하여 생성 KSM 2017.08.31
+/*******************************************************************************
+ * 함수명     : gf_combo_grd_sync_sub1
+ *  
+ *       this.gf_combo_grd_sync (헤드데이타셋오브젝트, 해드데이타셋컬럼명,해당jsp, 아큐먼트, db연결);
+ *       예) this.gf_combo_grd_sync(this.ds_Head,"ARG_RFGUB1","co_dddw_reffpf_f_01","",0);
+ *      아규먼트 
+ *           1. arg_grd    : 그리드  오브젝트 : 예) this.gd_list
+ *           2. arg_column : 컬럼명 : 컬럼 id        예) "SAUPJANG"
+ *           3. arg_jsp    : jsp값                   예) "co_dddw_reffpf_f_03""
+ *           4. arg_para   :   아규먼트                예) "10|35"
+ *           5. arg_db     : 디비 연결               예) "ff_Callback_sync"
+ * 기능 	: combo 생성 및 그리드  바인딩   
+ *  ********************************************************************************/
+
+this.gf_combo_grd_Async_sub1 = function(arg_grd ,arg_column ,arg_jsp, arg_para, arg_db)
+{
+	this.gf_combo_grd_comm_sub1(arg_grd ,arg_column ,arg_jsp, arg_para, true,arg_db);
+}
+
+this.gf_combo_grd_sync_sub1 = function(arg_grd ,arg_column ,arg_jsp, arg_para, arg_db)
+{
+	this.gf_combo_grd_comm_sub1(arg_grd ,arg_column ,arg_jsp, arg_para,  false,arg_db)
+}
+
+this.gf_combo_grd_comm_sub1 = function(arg_grd ,arg_column ,arg_jsp, arg_para,  arg_type, arg_db)
+{
+
+	var vs_arg_jsp = arg_jsp;           // inner 데이타셋을 사용할경우 "@" 가 있으면 inner 데이타 셋이다.
+    var vs_ds_combo_para_bds = "_dsg_" + arg_grd.id + arg_column + "_bds";  // 콤보 조회하기위해 아규먼트를 넘기기위한 데이타 셋 생성 
+    var vs_ds_combo_out_bds = "_dsg_" + arg_grd.id + arg_column +"_out";   // 조회결광값의 데이타셋
+
+	var arg_svc= "_svc_" + arg_grd.id + arg_column +"_out";
+	
+    var arg_callback="_ff_callback_combo_grd_sub1";
+
+	var objDelete = this.removeChild(vs_ds_combo_para_bds);
+	    objDelete = this.removeChild(vs_ds_combo_out_bds);
+    
+	var ds_combo_para_bds = new Dataset;
+	ds_combo_para_bds.set_name(vs_ds_combo_para_bds);
+	var vi_idx =  this.addChild(ds_combo_para_bds.name, ds_combo_para_bds); 
+	var combo_para = new Array();
+	combo_para = arg_para.split("|");
+    for (i=0; i < combo_para.length ; i++) {
+		ds_combo_para_bds.addColumn( "ARG_CODE" + (i+1), "string", 120 );
+	}
+	ds_combo_para_bds.clearData();
+    
+	var ds_combo_out_bds = new Dataset();
+	ds_combo_out_bds.set_name(vs_ds_combo_out_bds);
+	var vi_idx =  this.addChild(ds_combo_out_bds.name, ds_combo_out_bds); 
+	
+	// 2017.08.31 KSM 
+    // var vi_cell = arg_grd.getBindCellIndex("body", arg_column);
+    var vi_cell = arg_column;
+    
+    bSucc = arg_grd.setCellProperty( "body", vi_cell, "displaytype", "combo");
+ 
+	// trace(vi_cell + ' / ' + bSucc); 
+ 
+    var vs_edittype = arg_grd.getCellProperty("body", vi_cell, "edittype");
+    if (vs_edittype == 'normal'){
+        bSucc = arg_grd.setCellProperty( "body", vi_cell, "edittype", "combo");
+    }   
+        
+    bSucc = arg_grd.setCellProperty( "body", vi_cell, "combodataset", "");
+    bSucc = arg_grd.setCellProperty( "body", vi_cell, "combodataset", vs_ds_combo_out_bds);
+    bSucc = arg_grd.setCellProperty( "body", vi_cell, "combocodecol", "CODE");
+    bSucc = arg_grd.setCellProperty( "body", vi_cell, "combodatacol", "DATA");
+    
+// trace(vs_ds_combo_out_bds);    
+    
+    var v_outdataset="";
+    // 아규먼트 갯수만큼 루핑
+    var vs_combo_condition="";
+	for (var i=0; i<combo_para.length; i++)
+	{
+		if (i==0) 
+		   var vi_row = ds_combo_para_bds.addRow();
+		ds_combo_para_bds.setColumn(0,'ARG_CODE' + (i+1) , combo_para[i].trim(" "));
+		if (i == combo_para.length -1)
+		   vs_combo_condition=combo_para[i].trim(" ");
+
+	}
+
+	 v_outdataset = vs_ds_combo_out_bds + "=output1";
+
+	v_SvcAct		= "co/dddw/" + arg_jsp + "_1q.jsp";    
+	
+
+    if (!NXCore.isEmpty(arg_db)) {
+       var vs_arg_db = arg_db + "";
+       v_SvcAct += "?dbconn=" + vs_arg_db.substr(0,1);
+    }
+
+	v_InDataset		=  "ds_para=" + vs_ds_combo_para_bds;     // 반드시 기술할것
+	v_Argument		= ""; 
+	 
+	 
+   var nIndex;
+    nIndex = vs_arg_jsp.indexOf("@");  // inner 데이타셋을 사용하느냐?
+	if (nIndex ==  -1) {
+		if (arg_type) 
+			this.gf_Transaction_Async(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+		else	{ 
+			this.gf_Transaction_sync(arg_svc, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+		}
+	}
+    else {    // inner dataset를 강제로 만듬.
+        var vb_true;
+        vb_true = ds_combo_out_bds.addColumn( "CODE", "string", 120 );
+        ds_combo_out_bds.addColumn( "DATA", "string", 120 );
+		var va_row_arr = new Array();             // 로우 단위 스플릿 "@"
+		var va_col_arr = new Array();             // 1로우를 컬럼으로 스플릿 "^"
+		va_row_arr = vs_arg_jsp.split("@");
+
+		for (var i=0; i < va_row_arr.length; i++) {
+			va_col_arr = va_row_arr[i].split("^");
+			var vi_row = ds_combo_out_bds.addRow();
+			ds_combo_out_bds.setColumn(vi_row,"CODE",va_col_arr[0]);
+			ds_combo_out_bds.setColumn(vi_row,"DATA",this.gf_get_trans_meta_word(va_col_arr[1]));
+		}
+    }
+ 
+    if (vs_combo_condition.substr(0,1) == "@") {
+		if (vs_combo_condition.substr(1,1) == 'N') {
+		    ds_combo_out_bds.insertRow(0);
+            ds_combo_out_bds.setColumn(0,"CODE","");
+            ds_combo_out_bds.setColumn(0,"DATA","");
+		}    
+		else if (vs_combo_condition.substr(1,1) == 'A') {
+                ds_combo_out_bds.insertRow(0);
+                ds_combo_out_bds.setColumn(0,"CODE","%");
+                ds_combo_out_bds.setColumn(0,"DATA",this.gf_get_trans_meta_word("전체"));
+         }       
+    }
+	var objDelete = this.removeChild(vs_ds_combo_para_bds);
+
+}
+
+
+/*******************************************************************************
+ * 함  수  명 : gf_Procedure_sync
+ * 아규먼트 	: 	arg_proc_name : 프로시져 명칭 예)  "create_daily_chulha"
+ *                  arg_parm  : 파라메터값  예) 2개의 값을 넘길경우  "aa|vv"
+ *                  svc_id    : 써비스 아이디 예) "PROCEDURE"
+ *                  arg_callback    : 콜백명  예) "ff_Callback_sync"
+ *
+ *         OUT이 있을경우 RETURN되는 값이 생긴다. 
+ * 기능	: 프로시져 호출하는 함수  
+ *  ********************************************************************************/
+//this.gf_Procedure_sync = function(arg_proc_name, arg_parm, svc_id, arg_callback, arg_db)
+
+this.gf_Package_sync = function(arg_proc_name, arg_parm, svc_id, arg_callback, arg_db)
+{
+   var objDelete = this.removeChild("ds_package_para_bds");	
+ 
+    var ds_procedure_para_bds = new Dataset;
+    var vi_idx1 =  this.addChild("ds_package_para_bds", ds_procedure_para_bds); 
+ 	ds_procedure_para_bds.addColumn( "ARG_VALUE", "string", 250);
+    var va_arr = arg_parm.split("|");
+    var vi_nrow;
+    for (var i=0; i < va_arr.length; i++)
+    { 
+		vi_nrow = ds_procedure_para_bds.addRow();
+		ds_procedure_para_bds.setColumn(vi_nrow,'ARG_VALUE',va_arr[i]);
+    }
+    // 프로시져명을 0번째로우에 값을 넣어줌     
+    ds_procedure_para_bds.insertRow(0);
+    ds_procedure_para_bds.setColumn(0,0,arg_proc_name.toUpperCase());
+	
+	objDelete = this.removeChild("ds_package_return_bds");	
+	
+ 	var ds_procedures_return_bds = new Dataset;
+    var vi_idx =  this.addChild("ds_package_return_bds", ds_procedures_return_bds); 
+
+    var ds_head = ds_procedure_para_bds.id;
+    var v_SvcAct,v_InDataset,v_outdataset,v_Argument;
+    
+	// v_SvcAct		= "Common/common_procedure_1tr.jsp";    // 
+
+	v_SvcAct		= "Common/common_package_1tr.jsp";    // 
+	
+
+    if (!NXCore.isEmpty(arg_db))
+       v_SvcAct += "?dbconn=" + arg_db;
+       
+	v_InDataset		=  "ds_para=ds_package_para_bds";     // 반드시 기술할것
+	v_outdataset    =  "ds_package_return_bds=output1";    
+	v_Argument		= "";  
+
+
+	this.gf_Transaction_sync(svc_id, v_SvcAct, v_InDataset, v_outdataset,arg_callback);	
+
+	
+	var vs_retu;
+	if (ds_procedures_return_bds.rowcount > 0) {
+       vs_retu = ds_procedures_return_bds.getColumn(0,0);
+       application.gvs_clipboard = ds_procedures_return_bds.getColumn(0,1);		//dbms_output.put_line 값 셋팅
+    }
+    else vs_retu=""; 
+
+	var objDelete = this.removeChild("ds_package_return_bds");	
+	var objDelete = this.removeChild("ds_package_para_bds");	
+    return vs_retu;
+} ]]></Script>

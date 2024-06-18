@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Script type="xscript5.0"><![CDATA[/*****************************************************************************************
+ * 함  수  명	: 	gm_open_pgrm
+ * 아규먼트 	: 	arg_pgrm :  프로그램 아이디 예) eis_01::eis_01_01.xfdl
+ *                  
+ * 기      능	: 
+ *                  
+ *****************************************************************************************/
+ this.gm_open_pgrm = function(arg_pgrm_id)                     // dup chk
+{
+	var nRow;
+	     nRow = application.gmds_menu.findRow( "pgrm_id", arg_pgrm_id);
+     if (nRow < 0) {
+        alert("프로그램이 등록되어 있지않습니다");
+        return;
+     }
+    var ls_pgrm_title = application.gmds_menu.getColumn(nRow,"pgrm_title");
+	this.parent.div_top.stc_title.set_text(ls_pgrm_title);	
+	this.parent.div_pgrm.set_url(arg_pgrm_id);
+}	 
+
+/*****************************************************************************************
+ * 함  수  명	: 	gm_mobile_check
+ * 아규먼트 	: 	없슴
+ *                  
+ * 기      능	:  현재 실행중인것이 모바일 인지를 검수 
+ *  결과        :  true는 모바일   false: 런타임 혹은 mobile이 아님.   
+ *****************************************************************************************/
+this.gm_mobile_chk = function() 
+{ 
+    var vs_os = system.osversion;	
+  
+    if (vs_os.substr(0,6) == "Window" )
+        return false;
+
+    return true;
+
+// 	var mobileInfo = new Array('Android', 'iPhone', 'iPod', 'BlackBerry', 'Windows CE', 'SAMSUNG', 'LG', 'MOT', 'SonyEricsson');
+// 	if(system.navigatorname != "nexacro")
+// 	{
+// 		for (var info in mobileInfo){	
+// 			if (navigator.userAgent.match(mobileInfo[info]) != null){
+// 			    alert(mobileInfo[info] + " 모바일 ");
+// 			    return true;
+// 				break;
+// 			}
+// 		}
+// 	   return false;
+// 	} 
+// 	return false;
+}	]]></Script>
