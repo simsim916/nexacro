@@ -39,6 +39,9 @@
     <Service prefixid="Work" type="form" url="./Work/" communicationversion="0"/>
     <Service prefixid="lib" type="js" url="./lib/" communicationversion="0"/>
     <Service prefixid="Bottom" type="form" url="./Bottom/" communicationversion="0"/>
+    <Service prefixid="Top" type="form" url="./Top/" communicationversion="0"/>
+    <Service prefixid="Center_Left" type="form" url="./Center/Left/" communicationversion="0"/>
+    <Service prefixid="Center_Right" type="form" url="./Center/Right/" communicationversion="0"/>
   </Services>
   <Update/>
 </TypeDefinition>

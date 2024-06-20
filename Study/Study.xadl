@@ -4,17 +4,17 @@
   <GlobalVariables url="globalvars.xml"/>
   <Application id="Study" codepage="utf-8" language="Korean" loginformurl="" loginformstyle="" windowopeneffect="" windowcloseeffect="" version="" tracemode="none" themeid="default.xtheme">
     <Layout>
-      <MainFrame id="mainframe" title="maintitle" defaultfont="" resizable="true" showtitlebar="true" showstatusbar="true" left="0" top="0" width="1200" height="800">
-        <VFrameSet id="VFrameSet0" separatesize="230,500,70">
+      <MainFrame id="mainframe" title="maintitle" defaultfont="" resizable="true" showtitlebar="true" showstatusbar="true" left="0" top="0" width="1200" height="854">
+        <VFrameSet id="VFrameSet0" separatesize="90,660,50">
           <Frames>
-            <ChildFrame id="Bottom_frame" style="overlaycolor:#444444ff;background:wheat;color:#444444ff;" formurl="Work::Emp.xfdl"/>
-            <HFrameSet id="HFrameSet0">
+            <ChildFrame id="Top_frame" style="overlaycolor:#444444ff;background:transparent;color:#444444ff;" formurl="Top::header.xfdl" dragmovetype="none" showtitlebar="false" showtitleicon="false" width="1200" height="110"/>
+            <HFrameSet id="HFrameSet0" separatesize="270 930">
               <Frames>
-                <ChildFrame id="Center_left_frame" style="overlaycolor:#444444ff;background:cornflowerblue;color:#444444ff;"/>
-                <ChildFrame id="Center_Right_frame" style="overlaycolor:#444444ff;background:darkslategray;color:#444444ff;"/>
+                <ChildFrame id="Center_left_frame" style="overlaycolor:#444444ff;background:transparent;color:#444444ff;" dragmovetype="none" showtitlebar="false" showtitleicon="false" formurl="Center_Left::sideMenu.xfdl"/>
+                <ChildFrame id="Center_Right_frame" style="overlaycolor:#444444ff;background:transparent;color:#444444ff;" dragmovetype="none" showtitlebar="false" showtitleicon="false" formurl="Center_Right::main.xfdl"/>
               </Frames>
             </HFrameSet>
-            <ChildFrame id="Top_frame2" style="overlaycolor:#444444ff;background:chocolate;color:#444444ff;"/>
+            <ChildFrame id="Bottom_frame" style="overlaycolor:#444444ff;background:transparent;color:#444444ff;" dragmovetype="none" showtitlebar="false" showtitleicon="false" formurl="Bottom::bottom.xfdl"/>
           </Frames>
         </VFrameSet>
       </MainFrame>
