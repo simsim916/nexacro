@@ -1,0 +1,153 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<FDL version="1.5">
+  <TypeDefinition url="..\default_typedef.xml"/>
+  <Form id="header" left="0" top="0" width="1200" height="110" titletext="New Form">
+    <Layouts>
+      <Layout>
+        <Div id="header" taborder="0" top="20" style="background:#9b1b30ff;bordertype:normal 0 0 ;" scrollbars="none" left="15" right="15" bottom="20">
+          <Layouts>
+            <Layout>
+              <Combo id="Combo_Menu" taborder="0" left="10" top="10" style="padding:0 0 0 0;background:#ffffffff;" width="220" bottom="10" innerdataset="@ds_ComboBox" onitemchanged="Combo_Menu_onitemchanged" datacolumn="메뉴이름" displaynulltext="메뉴를 선택해주세요"/>
+              <Div id="Menu01" taborder="1" text="메뉴1" left="578" style="border:0px none #808080ff,2px solid #f2eecaff;color:#ffffffff;font:16 Dotum;cursor:pointer;" width="150" top="0" bottom="0">
+                <Layouts>
+                  <Layout width="200" height="90"/>
+                </Layouts>
+              </Div>
+              <Div id="Menu00" taborder="2" text="메뉴2" left="726" top="0" width="150" style="border:0px none #808080ff,2px solid #f2eecaff;color:#ffffffff;font:16 Dotum;cursor:pointer;" bottom="0">
+                <Layouts>
+                  <Layout/>
+                </Layouts>
+              </Div>
+              <Div id="Menu02" taborder="3" text="메뉴3" left="874" top="0" width="150" style="border:0px none #808080ff,2px solid #f2eecaff;color:#ffffffff;font:16 Dotum;cursor:pointer;" bottom="0">
+                <Layouts>
+                  <Layout width="200" height="70"/>
+                </Layouts>
+              </Div>
+              <Div id="Menu04" taborder="4" text="메뉴4" left="1022" top="0" width="150" style="border:0 none #808080ff,2px solid #f2eecaff;color:#ffffffff;font:16 Dotum;cursor:pointer;" bottom="0">
+                <Layouts>
+                  <Layout width="200" height="74"/>
+                </Layouts>
+              </Div>
+            </Layout>
+          </Layouts>
+          <InitValue/>
+        </Div>
+      </Layout>
+    </Layouts>
+    <Objects>
+      <Dataset id="ds_ComboBox">
+        <ColumnInfo>
+          <Column id="메뉴이름" type="STRING" size="256"/>
+        </ColumnInfo>
+        <Rows>
+          <Row>
+            <Col id="메뉴이름">메뉴1</Col>
+          </Row>
+          <Row>
+            <Col id="메뉴이름">메뉴2</Col>
+          </Row>
+          <Row>
+            <Col id="메뉴이름">메뉴3</Col>
+          </Row>
+          <Row>
+            <Col id="메뉴이름">메뉴4</Col>
+          </Row>
+        </Rows>
+      </Dataset>
+      <Dataset id="MenuData">
+        <ColumnInfo>
+          <Column id="index" type="STRING" size="256"/>
+          <Column id="메뉴이름" type="STRING" size="256"/>
+          <Column id="조상" type="STRING" size="256"/>
+        </ColumnInfo>
+        <Rows>
+          <Row>
+            <Col id="메뉴이름">메뉴1</Col>
+            <Col id="index">1</Col>
+          </Row>
+          <Row>
+            <Col id="메뉴이름">메뉴2</Col>
+            <Col id="index">2</Col>
+          </Row>
+          <Row>
+            <Col id="메뉴이름">메뉴3</Col>
+            <Col id="index">3</Col>
+          </Row>
+          <Row>
+            <Col id="조상">1</Col>
+            <Col id="메뉴이름">메뉴1-1</Col>
+            <Col id="index">4</Col>
+          </Row>
+          <Row>
+            <Col id="조상">1</Col>
+            <Col id="메뉴이름">메뉴1-2</Col>
+            <Col id="index">5</Col>
+          </Row>
+          <Row>
+            <Col id="메뉴이름">메뉴1-3</Col>
+            <Col id="조상">1</Col>
+            <Col id="index">6</Col>
+          </Row>
+          <Row>
+            <Col id="메뉴이름">메뉴1-4</Col>
+            <Col id="조상">1</Col>
+            <Col id="index">7</Col>
+          </Row>
+          <Row>
+            <Col id="index">8</Col>
+            <Col id="메뉴이름">메뉴2-1</Col>
+            <Col id="조상">2</Col>
+          </Row>
+          <Row>
+            <Col id="index">9</Col>
+            <Col id="메뉴이름">메뉴2-2</Col>
+            <Col id="조상">2</Col>
+          </Row>
+          <Row>
+            <Col id="index">10</Col>
+            <Col id="메뉴이름">메뉴2-3</Col>
+            <Col id="조상">2</Col>
+          </Row>
+          <Row>
+            <Col id="index">11</Col>
+            <Col id="메뉴이름">메뉴2-4</Col>
+            <Col id="조상">2</Col>
+          </Row>
+          <Row>
+            <Col id="index">12</Col>
+            <Col id="메뉴이름">메뉴3-1</Col>
+            <Col id="조상">3</Col>
+          </Row>
+          <Row>
+            <Col id="index">13</Col>
+            <Col id="메뉴이름">메뉴3-2</Col>
+            <Col id="조상">3</Col>
+          </Row>
+          <Row>
+            <Col id="index">14</Col>
+            <Col id="메뉴이름">메뉴3-3</Col>
+            <Col id="조상">3</Col>
+          </Row>
+          <Row>
+            <Col id="index">15</Col>
+            <Col id="메뉴이름">메뉴3-4</Col>
+            <Col id="조상">3</Col>
+          </Row>
+        </Rows>
+      </Dataset>
+    </Objects>
+    <Script type="xscript5.0"><![CDATA[// 좌측 콤보 박스 변경시 메뉴 변경
+this.Combo_Menu_onitemchanged = function(obj:Combo, e:nexacro.ItemChangeEventInfo)
+{
+	this.cleanHeaderDiv();
+}
+
+this.cleanHeaderDiv = function() {
+	
+}
+
+this.makeHeaderDiv = function(){
+
+}]]></Script>
+  </Form>
+</FDL>

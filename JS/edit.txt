@@ -1,0 +1,60 @@
+// 1154행
+
+// 입고 창고에서 불량 창고로 출고 (수불구분 'O05')
+var vn_outrow = this.ds_imhist.addRow();
+
+this.ds_imhist.setColumn(vn_outrow, "IOJPNO", parseInt(vn_jpno) + 1);
+this.ds_imhist.setColumn(vn_outrow, "IOGBN", "O05");
+this.ds_imhist.setColumn(vn_outrow, "ITNBR", vs_itnbr);
+this.ds_imhist.setColumn(vn_outrow, "PSPEC", '.');
+this.ds_imhist.setColumn(vn_outrow, "OPSEQ", '9999');
+this.ds_imhist.setColumn(vn_outrow, "DEPOT_NO", vs_depot);
+this.ds_imhist.setColumn(vn_outrow, "CVCOD", vs_baddepot);
+this.ds_imhist.setColumn(vn_outrow, "SUDAT", vs_sdate);
+this.ds_imhist.setColumn(vn_outrow, "INSDAT", vs_sdate);
+this.ds_imhist.setColumn(vn_outrow, "IO_DATE", Null);
+//	this.ds_imhist.setColumn(vn_outrow, "YEBI1", vs_sdate);
+this.ds_imhist.setColumn(vn_outrow, "IOPRC", vs_prc);
+this.ds_imhist.setColumn(vn_outrow, "IOQTY", vs_qty);
+this.ds_imhist.setColumn(vn_outrow, "IOREQTY", vs_qty);
+this.ds_imhist.setColumn(vn_outrow, "IOAMT", vs_amt);
+this.ds_imhist.setColumn(vn_outrow, "YEBI2", vs_cunit);
+this.ds_imhist.setColumn(vn_outrow, "DYEBI3", 0);
+this.ds_imhist.setColumn(vn_outrow, "CRT_USER", application.gvs_userid);
+this.ds_imhist.setColumn(vn_outrow, "INSEMP", application.gvs_userid);
+this.ds_imhist.setColumn(vn_outrow, "IO_EMPNO", application.gvs_userid);
+this.ds_imhist.setColumn(vn_outrow, "LOTENO", vs_loteno);
+this.ds_imhist.setColumn(vn_outrow, "IP_JPNO", vIpjpno);
+this.ds_imhist.setColumn(vn_outrow, "SAUPJ", this.fvs_saupcode);
+this.ds_imhist.setColumn(vn_outrow, "INPCNF", "O");
+this.ds_imhist.setColumn(vn_outrow, "FILSK", "Y");
+this.ds_imhist.setColumn(vn_outrow, "IO_CONFIRM", 'N');
+this.ds_imhist.setColumn(vn_outrow, "QCGUB", "1");
+this.ds_imhist.setColumn(vn_outrow, "JNPCRT", "057");
+this.ds_imhist.setColumn(vn_outrow, "BIGO", vs_remark);
+//	this.ds_imhist.setColumn(vn_outrow, "GODQTY", vs_qty);
+//	this.ds_imhist.setColumn(vn_outrow, "GODDAT", vs_sdate);
+//	this.ds_imhist.setColumn(vn_outrow, "GODPRC", vs_prc);
+//	this.ds_imhist.setColumn(vn_outrow, "GODAMT", vs_amt);
+this.ds_imhist.setColumn(vn_outrow, "LCLGBN", 'V');
+
+// 제품창고->불량창고 입고자료..
+var vn_inrow = this.ds_imhist.addRow();
+
+this.ds_imhist.copyRow(vn_inrow, this.ds_imhist, vn_outrow);
+
+vn_jpno = this.ds_imhist.getMax("IOJPNO");
+this.ds_imhist.setColumn(vn_inrow, "IOJPNO", parseInt(vn_jpno) + 1);
+this.ds_imhist.setColumn(vn_inrow, "IOGBN", "I11");
+this.ds_imhist.setColumn(vn_inrow, "DEPOT_NO", vs_baddepot);
+this.ds_imhist.setColumn(vn_inrow, "CVCOD", vs_depot);
+this.ds_imhist.setColumn(vn_inrow, "QCGUB", "1");
+this.ds_imhist.setColumn(vn_inrow, "INSDAT", vs_sdate);
+this.ds_imhist.setColumn(vn_inrow, "INSEMP", application.gvs_userid);
+this.ds_imhist.setColumn(vn_inrow, "INPCNF", "I");
+this.ds_imhist.setColumn(vn_inrow, "DYEBI3", 0);
+//	this.ds_imhist.setColumn(vn_inrow, "GODQTY", vs_qty);
+//	this.ds_imhist.setColumn(vn_inrow, "GODDAT", vs_sdate);
+//	this.ds_imhist.setColumn(vn_inrow, "GODPRC", vs_prc);
+//	this.ds_imhist.setColumn(vn_inrow, "GODAMT", vs_amt);
+this.ds_imhist.setColumn(vn_inrow, "LCLGBN", 'V');

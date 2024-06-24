@@ -1,0 +1,19 @@
+this.btn_etc1_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
+    var vs_today = this.gf_today();
+
+    for (var i = 0; i < this.ds_master.rowcount; i++) {
+        if (this.ds_master.getColumn(i, "CHK") == '0')
+            continue;
+
+        var vs_sql = "UPDATE IMHIST_SAL(IO_CONFIRM, IO_DATE, IO_EMPNO) "
+            + "VALUES('Y', '" + vs_today + "', '" + application.gvs_empid + "')"
+            + "WHERE IP_JPNO = '" + this.ds_master.getColumn(i, "IOJPNO") + "'"
+        this.gf_UpdateSql_Async(vs_sql, 'INSERT_SQL',null,0)
+        
+        this.ds_master.setColumn(i, "IO_CONFIRM", "Y");
+        this.ds_master.setColumn(i, "IO_DATE", vs_today);
+        this.ds_master.setColumn(i, "IO_EMPNO", application.gvs_empid);
+    }
+
+    this.ff_Tran("SAVE_MASTER");
+}

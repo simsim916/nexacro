@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<FDL version="1.5">
+  <TypeDefinition url="..\..\default_typedef.xml"/>
+  <Form id="main" left="0" top="0" width="930" height="640" titletext="New Form">
+    <Layouts>
+      <Layout>
+        <Div id="main" taborder="0" left="0" top="0" style="border:2 solid #9b1b30ff ;" right="15" bottom="0">
+          <Layouts>
+            <Layout width="915" height="640"/>
+          </Layouts>
+        </Div>
+      </Layout>
+    </Layouts>
+  </Form>
+</FDL>

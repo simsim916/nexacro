@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<FDL version="1.5">
+  <TypeDefinition url="..\..\default_typedef.xml"/>
+  <Form id="sideMenu" left="0" top="0" width="270" height="660" titletext="New Form">
+    <Layouts>
+      <Layout>
+        <Div id="sideMenuBar" taborder="0" left="15" top="0" style="background:#ffffffff;border:2 solid #9b1b30ff ;" width="240" bottom="0">
+          <Layouts>
+            <Layout>
+              <Grid id="grid_sidemenu" taborder="0" useinputpanel="false" left="5%" top="20" right="5%" binddataset="side_menu" bottom="20" style="border:0 none transparent ;" treeusecheckbox="false" treeuseline="false" autoenter="select" selectscrollmode="default">
+                <Formats>
+                  <Format id="default">
+                    <Columns>
+                      <Column size="214"/>
+                    </Columns>
+                    <Rows>
+                      <Row size="24"/>
+                    </Rows>
+                    <Band id="body">
+                      <Cell celltype="none" displaytype="tree" edittype="tree" style="background:transparent;background2:transparent;cursor:pointer;selectbackground:transparent;selectcolor:black;selectfont:11 Arial Bold;" text="bind:menuName" treecollapseimage="URL('theme://images\btn_hinc_O.png')"/>
+                    </Band>
+                  </Format>
+                </Formats>
+              </Grid>
+            </Layout>
+          </Layouts>
+        </Div>
+      </Layout>
+    </Layouts>
+    <Objects>
+      <Dataset id="side_menu">
+        <ColumnInfo>
+          <Column id="menuName" type="STRING" size="256"/>
+        </ColumnInfo>
+        <Rows>
+          <Row>
+            <Col id="menuName">사이드메뉴1</Col>
+          </Row>
+          <Row>
+            <Col id="menuName">사이드메뉴2</Col>
+          </Row>
+          <Row>
+            <Col id="menuName">사이드메뉴3</Col>
+          </Row>
+          <Row>
+            <Col id="menuName">사이드메뉴4</Col>
+          </Row>
+          <Row>
+            <Col id="menuName">사이드메뉴5</Col>
+          </Row>
+        </Rows>
+      </Dataset>
+    </Objects>
+    <Bind/>
+  </Form>
+</FDL>
