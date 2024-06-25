@@ -2,7 +2,15 @@ gf_combo_head_Async = function (arg_head, arg_column, arg_cbo, arg_jsp, arg_para
     this.gf_combo_head_comm(arg_head, arg_column, arg_cbo, arg_jsp, arg_para, true, arg_db);
 }
 
-gf_combo_head_comm = function (arg_head, arg_column, arg_cbo, arg_jsp, arg_para, arg_type, arg_db) {
+gf_combo_head_comm = function (
+    arg_head,   // 연결한 부모 데이터셋     this.parent.parent.ds_Master
+    arg_column, // 데이터 셋의 column      "JOBKINDCODE"
+    arg_cbo,    // 콤보박스의 obj          this.Div_Master.cbo_jobkind
+    arg_jsp,    // jsp                    "co_dddw_jobkind"
+    arg_para,   // 보통 빈문자열            ""
+    arg_type,   // 1 : 비동기 / 0 : 동기    1
+    arg_db      // DB연결 정보
+) {
     var vs_arg_jsp = arg_jsp;           // inner 데이타셋을 사용할경우 "@" 가 있으면 inner 데이타 셋이다.
 
     var vs_ds_combo_para_bds = "_ds_" + arg_cbo.id + "_bds";  // 콤보 조회하기위해 아규먼트를 넘기기위한 데이타 셋 생성 
