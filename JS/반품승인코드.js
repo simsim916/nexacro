@@ -151,47 +151,92 @@ this.btn_close_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
     this.gf_closeMenu();
 }
 
+
+
+/********************************************** 
+불량반품 승인, 취소 시 창고이동 생성, 삭제
+*작성자 : 최문석 *작성일 : 2024.06.28 *작성내용 : 불량반품 승인 시, 창고이동출고(O05) 창고이동입고(I11) 발생 
+**********************************************/
+this.ff_FaultInsert = function (IOJPNO) {
+    this.ds_temp.clear();
+    var vs_sql =
+        "SELECT * FROM IMHIST_SAL WHERE IOJPNO = '" + IOJPNO + "'";
+    this.gf_SelectSql_sync("ds_temp : " + vs_sql, "Temp_Select", null);
+
+    // 전표 채번
+    var vs_buljpno = this.fvs_companycode + this.ds_temp.getColumn(0, "SUDAT").substr(2, 6)
+        + this.gf_get_junpyo(this.ds_temp.getColumn(0, "SUDAT"), "C0", 4, this.fvs_companycode)
+        + this.gf_NumToStr(0, 3);
+
+    // 입고 창고에서 불량 창고로 출고 (수불구분 'O05')
+    var vn_outrow = this.ds_imhist.addRow();
+
+    this.ds_imhist.setColumn(vn_outrow, "IOJPNO", parseInt(vs_buljpno) + 1);
+    this.ds_imhist.setColumn(vn_outrow, "IOGBN", "O05");
+    this.ds_imhist.setColumn(vn_outrow, "ITNBR", this.ds_temp.getColumn(0, "ITNBR"));
+    this.ds_imhist.setColumn(vn_outrow, "PSPEC", '.');
+    this.ds_imhist.setColumn(vn_outrow, "OPSEQ", '9999');
+    this.ds_imhist.setColumn(vn_outrow, "DEPOT_NO", this.ds_temp.getColumn(0, "DEPOT_NO"));
+    this.ds_imhist.setColumn(vn_outrow, "CVCOD", "Z10110"); // 불량창고 코드
+    this.ds_imhist.setColumn(vn_outrow, "SUDAT", this.ds_temp.getColumn(0, "SUDAT"));
+    this.ds_imhist.setColumn(vn_outrow, "INSDAT", this.ds_temp.getColumn(0, "INSDAT"));
+    this.ds_imhist.setColumn(vn_outrow, "IO_DATE", vs_today);
+    this.ds_imhist.setColumn(vn_outrow, "IOPRC", this.ds_temp.getColumn(0, "IOPRC"));
+    this.ds_imhist.setColumn(vn_outrow, "IOQTY", this.ds_temp.getColumn(0, "IOQTY"));
+    this.ds_imhist.setColumn(vn_outrow, "IOREQTY", this.ds_temp.getColumn(0, "IOREQTY"));
+    this.ds_imhist.setColumn(vn_outrow, "IOAMT", this.ds_temp.getColumn(0, "IOAMT"));
+    this.ds_imhist.setColumn(vn_outrow, "YEBI2", this.ds_temp.getColumn(0, "YEBI2"));
+    this.ds_imhist.setColumn(vn_outrow, "DYEBI3", 0);
+    this.ds_imhist.setColumn(vn_outrow, "CRT_USER", application.gvs_userid);
+    this.ds_imhist.setColumn(vn_outrow, "INSEMP", application.gvs_userid);
+    this.ds_imhist.setColumn(vn_outrow, "IO_EMPNO", application.gvs_userid);
+    this.ds_imhist.setColumn(vn_outrow, "LOTENO", this.ds_temp.getColumn(0, "LOTENO"));
+    this.ds_imhist.setColumn(vn_outrow, "IP_JPNO", this.ds_temp.getColumn(0, "IOJPNO"));
+    this.ds_imhist.setColumn(vn_outrow, "SAUPJ", this.ds_temp.getColumn(0, "SAUPJ"));
+    this.ds_imhist.setColumn(vn_outrow, "INPCNF", "O");
+    this.ds_imhist.setColumn(vn_outrow, "FILSK", "Y");
+    this.ds_imhist.setColumn(vn_outrow, "IO_CONFIRM", 'Y');
+    this.ds_imhist.setColumn(vn_outrow, "QCGUB", "1");
+    this.ds_imhist.setColumn(vn_outrow, "JNPCRT", "057");
+    this.ds_imhist.setColumn(vn_outrow, "BIGO", this.ds_temp.getColumn(0, "BIGO"));
+    this.ds_imhist.setColumn(vn_outrow, "LCLGBN", 'V');
+
+    // 제품창고->불량창고 입고자료..
+    var vn_inrow = this.ds_imhist.addRow();
+    this.ds_imhist.copyRow(vn_inrow, this.ds_imhist, vn_outrow);
+
+    this.ds_imhist.setColumn(vn_inrow, "IOJPNO", parseInt(vs_buljpno) + 2);
+    this.ds_imhist.setColumn(vn_inrow, "IOGBN", "I11");
+    this.ds_imhist.setColumn(vn_inrow, "DEPOT_NO", "Z10110"); // 불량창고 코드
+    this.ds_imhist.setColumn(vn_inrow, "CVCOD", this.ds_temp.getColumn(0, "DEPOT_NO"));
+    this.ds_imhist.setColumn(vn_inrow, "INPCNF", "I");
+}
+
+this.ff_FaultDelete = function(IOJPNO) {
+    var vs_sql =
+        "DELETE FROM IMHIST_SAL WHERE IP_JPNO = '" + IOJPNO + "'";
+    this.gf_UpdateSql_sync(vs_sql, "DELETE_FAULT", null);
+}
 //--------------------------------------------------------------------
 // 승인 버튼 클릭
 //--------------------------------------------------------------------
-/*
-this.btn_etc1_onclick = function(obj:Button, e:nexacro.ClickEventInfo)
-{
-    var vs_today = this.gf_today();
-
-    for (var i=0; i<this.ds_master.rowcount; i++)
-    {
-        if (this.ds_master.getColumn(i, "CHK") == '0')
-            continue;
-        	
-        this.ds_master.setColumn(i, "IO_CONFIRM", "Y");
-        this.ds_master.setColumn(i, "IO_DATE", vs_today);
-        this.ds_master.setColumn(i, "IO_EMPNO", application.gvs_empid);
-    }
-
-    this.ff_Tran("SAVE_MASTER");
-}*/
-
 this.btn_etc1_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
     var vs_today = this.gf_today();
-    trace("승인버튼");
+    this.ds_imhist.clearData();
+
     for (var i = 0; i < this.ds_master.rowcount; i++) {
         if (this.ds_master.getColumn(i, "CHK") == '0')
             continue;
 
-        var vs_sql = "UPDATE IMHIST_SAL "
-            + "SET IO_CONFIRM = 'Y',"
-            + "IO_DATE = '" + vs_today + "',"
-            + "IO_EMPNO = '" + application.gvs_empid + "' "
-            + "WHERE IP_JPNO = '" + this.ds_master.getColumn(i, "IOJPNO") + "'";
-        trace(vs_sql);
-        this.gf_UpdateSql_Async(vs_sql, 'INSERT_SQL', null, 0);
+        if (this.ds_master.getColumn(i, "JNPCRT") == '057') {
+            this.ff_FaultInsert(this.ds_master.getColumn(i, "IOJPNO")); //  *작성자 : 최문석 *작성일 : 2024.06.28 *작성내용 : 불량반품 승인 시, 창고이동출고(O05) 창고이동입고(I11) 발생 
+        }
 
         this.ds_master.setColumn(i, "IO_CONFIRM", "Y");
         this.ds_master.setColumn(i, "IO_DATE", vs_today);
         this.ds_master.setColumn(i, "IO_EMPNO", application.gvs_empid);
     }
-
+    trace(this.ds_imhist.saveXML());
     this.ff_Tran("SAVE_MASTER");
 }
 //--------------------------------------------------------------------
@@ -201,15 +246,7 @@ this.btn_etc2_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
     for (var i = 0; i < this.ds_master.rowcount; i++) {
         if (this.ds_master.getColumn(i, "CHK") == '0')
             continue;
-
-        var vs_sql = "UPDATE IMHIST_SAL "
-            + "SET IO_CONFIRM = 'N',"
-            + "IO_DATE = null,"
-            + "IO_EMPNO = null "
-            + "WHERE IP_JPNO = '" + this.ds_master.getColumn(i, "IOJPNO") + "'";
-        trace(vs_sql);
-
-        this.gf_UpdateSql_Async(vs_sql, 'INSERT_SQL', null, 0);
+        this.ff_FaultDelete(this.ds_master.getColumn(i, "IOJPNO")) // *작성자 : 최문석 *작성일 : 2024.06.28 *작성내용 : 불량반품 승인 시, 창고이동출고(O05) 창고이동입고(I11) 발생 
         this.ds_master.setColumn(i, "IO_CONFIRM", "N");
         this.ds_master.setColumn(i, "IO_DATE", null);
         this.ds_master.setColumn(i, "IO_EMPNO", null);
@@ -347,7 +384,7 @@ this.ff_Tran = function (strSvcId) {
 
         case "SAVE_MASTER":
             v_SvcAct = "sm/sale/sm_sale_sendback_cnf_neo_e_1tr.jsp";
-            v_InDataset = "input1=ds_master:U";	// 반드시 input1으로 기술할것
+            v_InDataset = "input1=ds_master:U input2=ds_imhist:U";	// 반드시 input1으로 기술할것
             v_OutDataset = "";
             break;
     }
@@ -363,7 +400,7 @@ this.ff_Callback = function (sSvcID, ErrorCode, ErrorMsg) {
     this.vs_ErrorMsg = ErrorMsg;
 
     if (ErrorCode < 0) {
-        NXCore.alert('CallBack ERR = ' + ErrorMsg);
+        NXCore.alert('CallBack ERR = ' + ErrorMsg + ErrorCode);
         return;
     }
 

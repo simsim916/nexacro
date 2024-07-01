@@ -13,9 +13,9 @@ this.btn_etc1_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
             this.gf_SelectSql_sync("ds_temp : " + vs_sql, "Temp_Select", null);
 
             // 전표 채번
-            var vs_buljpno = this.fvs_companycode + this.ds_temp.getColumn(0, "SUDAT").substr(2, 6) 
-                            + this.gf_get_junpyo(this.ds_temp.getColumn(0, "SUDAT"), "C0", 4, this.fvs_companycode)
-                            + this.gf_NumToStr(0, 3);
+            var vs_buljpno = this.fvs_companycode + this.ds_temp.getColumn(0, "SUDAT").substr(2, 6)
+                + this.gf_get_junpyo(this.ds_temp.getColumn(0, "SUDAT"), "C0", 4, this.fvs_companycode)
+                + this.gf_NumToStr(0, 3);
 
             // 입고 창고에서 불량 창고로 출고 (수불구분 'O05')
             var vn_outrow = this.ds_imhist.addRow();
@@ -62,15 +62,6 @@ this.btn_etc1_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
             this.ds_imhist.setColumn(vn_inrow, "CVCOD", this.ds_temp.getColumn(0, "DEPOT_NO"));
             this.ds_imhist.setColumn(vn_inrow, "INPCNF", "I");
         }
-
-
-
-
-
-
-
-
-
 
         this.ds_master.setColumn(i, "IO_CONFIRM", "Y");
         this.ds_master.setColumn(i, "IO_DATE", vs_today);

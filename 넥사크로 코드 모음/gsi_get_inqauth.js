@@ -1,4 +1,4 @@
-function (arg_userid) {
+gsi_get_inqauth = function (arg_userid) {
     var vSql, vRtn, vLevelcd, vDeptcd, vSarea, vInqsarea, vProtect;
     var vSysman;
 
