@@ -14,6 +14,6 @@ this.btn_etc1_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
         this.ds_master.setColumn(i, "IO_DATE", vs_today);
         this.ds_master.setColumn(i, "IO_EMPNO", application.gvs_empid);
     }
-
+s
     this.ff_Tran("SAVE_MASTER");
 }
