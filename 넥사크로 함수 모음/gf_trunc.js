@@ -1,3 +1,6 @@
+// nNum : 내림 할 숫자
+// nPos : 내림 할 위치 (-1 : 123.45 -> 120 / 0 : 123.45 -> 123 / 1 : 123.45 -> 123.4 )
+
 gf_trunc = function (nNum, nPos) {
     var half = 0.5;
     var factor = 1;
@@ -145,3 +148,9 @@ gf_trunc = function (nNum, nPos) {
 
     return nTemp4;
 }
+
+console.log(gf_trunc(112.45, -2))    // 100
+console.log(gf_trunc(112.45, -1))    // 110
+console.log(gf_trunc(112.45, 0))     // 112
+console.log(gf_trunc(112.45, 1))     // 112.4
+console.log(gf_trunc(112.4567, 2))   // 112.45
