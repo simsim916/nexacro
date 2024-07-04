@@ -149,8 +149,11 @@ gf_trunc = function (nNum, nPos) {
     return nTemp4;
 }
 
+console.log(gf_trunc(3550 * 11.12532,1))
+/*
 console.log(gf_trunc(112.45, -2))    // 100
 console.log(gf_trunc(112.45, -1))    // 110
 console.log(gf_trunc(112.45, 0))     // 112
 console.log(gf_trunc(112.45, 1))     // 112.4
 console.log(gf_trunc(112.4567, 2))   // 112.45
+*/
