@@ -1646,7 +1646,7 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
 
                     var vs_Sql = " SELECT 	NVL(FUN_GET_SORDER_TOTAL_QTY('" + vPidate + "','" + vCvcod + "','" + vs_Itnbr + "'),0) AS DEPT_ORDER_QTY, ";
                     vs_Sql += " 		NVL(FUN_GET_REQ_TOTAL_QTY('" + vPidate + "','" + vCvcod + "','" + vs_Itnbr + "'),0) AS DEPT_REQ_QTY ";
-                    vs_Sql += " FROM DUAL ";
+                    vs_Sql += " FROM DUAL  ";
 
                     this.gf_SelectSql_sync("ds_Temp : " + vs_Sql, "SELECT_TOTAL_QTY", "ff_Callback_sync");
                     if (vi_ErrorCode < 0) return;
