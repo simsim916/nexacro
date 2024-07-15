@@ -4,6 +4,7 @@ include "si_co::si_comm_function.xjs";
 var v_itnbr = '';
 
 this.form_onload = function (obj: Form, e: nexacro.LoadEventInfo) {
+    this.gf_formOnload(obj);
     this.ff_load(obj);
 }
 
@@ -26,7 +27,7 @@ this.ff_Tran = function (strSvcId) {
 
 this.ff_Callback = function (strSvcId, ErrorCode, ErrorMsg) {
     if (ErrorCode < 0) {
-        this.alert(ErrorMsg);
+        NXCore.alert('CallBack SVCID = ' + strSvcId + '  ErrorCode = ' + ErrorCode + ' MSG = ' + ErrorMsg);
         return;
     }
 
@@ -39,6 +40,18 @@ this.ff_Callback = function (strSvcId, ErrorCode, ErrorMsg) {
             v_itnbr = this.ds_item.getColumn(this.ds_item.rowposition, "ITNBR");
 
             this.select_Child();
+            break;
+        case "INSERT_ITEM":
+            this.alert("제품이 등록되었습니다.");
+            break;
+        case "INSERT_CHILD":
+            this.alert("매치 제품이 등록되었습니다.");
+            break;
+        case "DELETE_ITEM":
+            this.alert("제품이 삭제되었습니다.");
+            break;
+        case "DELETE_CHILD":
+            this.alert("매치 제품이 삭제되었습니다.");
             break;
     }
 
@@ -66,10 +79,7 @@ this.div_ds_child_Button00_onclick = function (obj: Button, e: nexacro.ClickEven
     this.grid_child.setCellProperty("body", 0, "edittype", "text");
     this.grid_child.setCellProperty("body", 1, "edittype", "text");
     this.grid_child.setCellProperty("body", 5, "edittype", "text");
-    trace(row)
-    trace(v_itnbr);
-    this.ds_child.setColumn(row, "ITNBR", v_itnbr);
-    trace(this.ds_child.getColumn(row, "ITNBR"));
+    trace(this.ds_child.setColumn(row, "ITNBR", v_itnbr));
     this.gf_cursor_setting(this.grid_child, row, 'ITCLS_K');
 }
 
@@ -79,7 +89,7 @@ this.div_ds_item_Button01_onclick = function (obj: Button, e: nexacro.ClickEvent
     if (confirm("선택한 제품과 세트 제품이 전부 삭제 됩니다.\n삭제를 진행 하시겠습니까?(복구 불가)")) {
         var sql = "  DELETE FROM ITEMAS_SET "
         sql += " WHERE ITNBR = '" + this.ds_item.getColumn(row, "ITNBR") + "' "
-        this.gf_UpdateSql_sync(sql, "DELETE_ITEM", null, 0);
+        this.gf_UpdateSql_sync(sql, "DELETE_ITEM", "ff_Callback");
         this.ds_item.deleteRow(row);
     }
 }
@@ -88,8 +98,8 @@ this.div_ds_child_Button01_onclick = function (obj: Button, e: nexacro.ClickEven
     var row = this.grid_child.getSelectedRows();
     if (confirm("선택한 세트 제품이 삭제 됩니다.\n삭제를 진행 하시겠습니까?(복구 불가)")) {
         var sql = "  DELETE FROM ITEMAS_SET "
-        sql += " WHERE CITNBR = '" + this.ds_child.getColumn(row, "CINBR") + "' "
-        this.gf_UpdateSql_sync(sql, "DELETE_CHILD", null, 0);
+        sql += " WHERE CINBR = '" + this.ds_child.getColumn(row, "CINBR") + "' "
+        this.gf_UpdateSql_sync(sql, "DELETE_CHILD", "ff_Callback");
         this.ds_child.deleteRow(row);
     }
 }
@@ -199,11 +209,12 @@ this.ff_AfterPopup = function (strId, obj) {
             this.ds_child.set_enableevent(false);
 
             if (confirm("현재 입력된 제품을 저장 하시겠습니까?") && this.insertCheck(this.ds_item, v_row)) {
-                this.ff_confirm("INSERT_CHILD", v_row)
+                this.ff_confirm("INSERT_CHILD", v_row);
             } else {
                 this.ds_child.deleteRow(v_row); // 품목 정보 clear....
             }
-
+            this.grid_child.setCellProperty("body", 0, "edittype", "none");
+            this.grid_child.setCellProperty("body", 1, "edittype", "none");
             this.ds_child.set_enableevent(true);
             break;
     }
@@ -279,7 +290,8 @@ this.ff_Object_onitemchanged = function (obj: Dataset, e: nexacro.DSColChangeEve
                     } else {
                         this.ds_child.deleteRow(vn_Row); // 품목 정보 clear....
                     }
-
+                    this.grid_child.setCellProperty("body", 0, "edittype", "none");
+                    this.grid_child.setCellProperty("body", 1, "edittype", "none");
                     break;
             }
         }
@@ -291,9 +303,8 @@ this.grid_item_oncellclick = function (obj: Grid, e: nexacro.GridClickEventInfo)
     this.select_Child();
 }
 
-
 this.select_Child = function () {
-    var sql = " SELECT A.CINBR, B.ITDSC, B.ISPEC, B.PRODNM, A.ITCLS_K "
+    var sql = " SELECT A.CINBR, B.ITDSC, B.ISPEC, B.PRODNM, A.ITCLS_K, A.ITNBR "
         + " FROM ITEMAS_SET A, ITEMAS B "
         + " WHERE A.CINBR = B.ITNBR(+) "
         + "	    AND A.ITNBR = '" + v_itnbr + "' "
@@ -314,7 +325,7 @@ this.ff_confirm = function (strId, row) {
             sql += " ,'" + application.getVariable("gvs_userid") + "' "
             sql += " ,'" + this.gf_today() + "' "
             sql += ") "
-            this.gf_UpdateSql_sync(sql, "INSERT_ITEM", null, 0);
+            this.gf_UpdateSql_sync(sql, "INSERT_ITEM", "ff_Callback");
             break;
         case "INSERT_CHILD":
             sql = "  INSERT INTO ITEMAS_SET(ITNBR, ITCLS_K, TITLENM, CINBR, CRT_USER, CRT_DATE)"
@@ -326,7 +337,7 @@ this.ff_confirm = function (strId, row) {
             sql += " ,'" + application.getVariable("gvs_userid") + "' "
             sql += " ,'" + this.gf_today() + "' "
             sql += ") "
-            this.gf_UpdateSql_sync(sql, "INSERT_ITEM", null, 0);
+            this.gf_UpdateSql_sync(sql, "INSERT_CHILD", "ff_Callback");
             break;
     }
 
