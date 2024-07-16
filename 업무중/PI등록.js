@@ -1646,7 +1646,7 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
 
                     var vs_Sql = " SELECT 	NVL(FUN_GET_SORDER_TOTAL_QTY('" + vPidate + "','" + vCvcod + "','" + vs_Itnbr + "'),0) AS DEPT_ORDER_QTY, ";
                     vs_Sql += " 		NVL(FUN_GET_REQ_TOTAL_QTY('" + vPidate + "','" + vCvcod + "','" + vs_Itnbr + "'),0) AS DEPT_REQ_QTY ";
-                    vs_Sql += " FROM DUAL  ";
+                    vs_Sql += " FROM DUAL ";
 
                     this.gf_SelectSql_sync("ds_Temp : " + vs_Sql, "SELECT_TOTAL_QTY", "ff_Callback_sync");
                     if (vi_ErrorCode < 0) return;
@@ -1659,10 +1659,15 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
 
                     if (vs_cnt[1] > 0) {
                         this.ff_co_popu_itemaskit_f("co_popu_itnkit", vs_Data);
-
+                        break; //** 문석
                     }
 
+                    //** 문석
+                    var vs_cnt2 = this.gf_SelectSql_sync("ds_Temp: Select count(*) from itemas_set where itnbr = '" + vs_Data + "' ", null, null, 0);
 
+                    if (vs_cnt2[1] > 0) {
+                        this.ff_co_popu_itemaskit_f("co_popu_itnset", vs_Data);
+                    }
 
                     break;
 
@@ -2802,13 +2807,28 @@ this.ff_itemas_f_pop = function (arg_svc, arg_para) {
 }
 
 this.ff_co_popu_itemaskit_f = function (strId, arg_parm) {
-    var resultForm = this.gf_showPopup(strId, "co_popu::co_popu_itemaskit_f.xfdl", { width: 350, height: 450 },
-        {
-            OpenRetv: 'Y',   // popup open 즉시 조회  
-            MultSelect: '',   // MULTI LINE 선택 (이 아규먼트는 POPUP 프로그램에서 ARG_PARA 의 8번째 방으로 대체 한다. 
-            Argument: arg_parm
-        }, { modal: true, layered: true, autosize: false, callback: "ff_AfterPopup" });
-
+    /** 문석수정
+        var resultForm = this.gf_showPopup(strId,  "co_popu::co_popu_itemaskit_f.xfdl", {width:350, height:450},
+            {	OpenRetv:   'Y',   // popup open 즉시 조회  
+                MultSelect: '',   // MULTI LINE 선택 (이 아규먼트는 POPUP 프로그램에서 ARG_PARA 의 8번째 방으로 대체 한다. 
+                Argument:  arg_parm 
+            }, {modal:true, layered:true, autosize:false, callback:"ff_AfterPopup"});
+    */
+    if (strId == 'co_popu_itnkit') {
+        var resultForm = this.gf_showPopup(strId, "co_popu::co_popu_itemaskit_f.xfdl", { width: 350, height: 450 },
+            {
+                OpenRetv: 'Y',   // popup open 즉시 조회  
+                MultSelect: '',   // MULTI LINE 선택 (이 아규먼트는 POPUP 프로그램에서 ARG_PARA 의 8번째 방으로 대체 한다. 
+                Argument: arg_parm
+            }, { modal: true, layered: true, autosize: false, callback: "ff_AfterPopup" });
+    } else if (strId == 'co_popu_itnset') {
+        var resultForm = this.gf_showPopup(strId, "Moon::co_popu_itemasset_f.xfdl", { width: 350, height: 450 },
+            {
+                OpenRetv: 'Y',   // popup open 즉시 조회  
+                MultSelect: '',   // MULTI LINE 선택 (이 아규먼트는 POPUP 프로그램에서 ARG_PARA 의 8번째 방으로 대체 한다. 
+                Argument: arg_parm
+            }, { modal: true, layered: true, autosize: false, callback: "ff_AfterPopup" });
+    }
 }
 
 
@@ -3280,11 +3300,26 @@ this.ff_AfterPopup = function (strId, obj) {
                     this.ds_Detail_1.setColumn(nIns, "KITCHECK", '0');
                 }
 
+                //** 문석
+                var vs_cnt2 = this.gf_SelectSql_sync("ds_Temp: Select count(*) from itemas_set where itnbr = '" + vItnbr + "' ", "SELECT_SETCHECK", "ff_Callback_sync", 0);
+                if (vs_cnt2[1] > 0) {
+                    this.ds_Detail_1.setColumn(nIns, "SETCHECK", '1');
+                } else {
+                    this.ds_Detail_1.setColumn(nIns, "SETCHECK", '0');
+                }
+
             }
             if (vs_kitcnt[1] > 0)	// KIT 상품 확인메시지(KIT 하나라도 있을 때)
             {
                 alert("KIT 상품이 있습니다. 구성품을 확인해주십시오.\n빨간 글씨 더블클릭 시 KIT 구성품 등록");
             }
+
+
+            //** 문석
+            if (vs_cnt2[1] > 0) {
+                alert("SET 상품이 있습니다. 구성품을 확인해주십시오.\n파란 글씨 더블클릭 시 SET 구성품 등록");
+            }
+
             this.ff_total_qty();
             this.ds_Detail_1.set_enableevent(true);
 
@@ -3389,8 +3424,18 @@ this.ff_AfterPopup = function (strId, obj) {
 
                 if (vs_cnt[1] > 0) {
                     this.ff_co_popu_itemaskit_f("co_popu_itnkit", vItnbr);
-
+                    this.ds_Detail_1.set_enableevent(true);
+                    break;
                 }
+                //** 문석
+                var vs_cnt2 = this.gf_SelectSql_sync("ds_Temp: Select count(*) from itemas_set where itnbr = '" + vItnbr + "' ", null, null, 0);
+
+                if (vs_cnt2[1] > 0) {
+                    this.ff_co_popu_itemaskit_f("co_popu_itnset", vItnbr);
+                }
+
+                this.ds_Detail_1.set_enableevent(true);
+                break;
             }
 
             this.ds_Detail_1.set_enableevent(true);
@@ -3446,6 +3491,51 @@ this.ff_AfterPopup = function (strId, obj) {
 
             break;
 
+        //** 문석
+        case "co_popu_itnset":
+            var vfind = 0;
+            var vOut_gu = "O18";
+
+            for (var i = 0; i < va_data.length; i++) {
+                var vItnbr = this.ds_Detail_1.getColumn(this.ds_Detail_1.rowposition, "ITNBR");
+
+                var vs_unmsr = this.gf_SelectSql_sync("ds_Temp: Select UNMSR from itemas where itnbr = '" + va_data[i][0] + "' ", "SELECT_reffpf_5A", "ff_Callback_sync", 0);
+                if (va_data[i][0] == vItnbr) {
+                    var vInsrow;
+                    vInsrow = this.ds_Detail_1.rowposition;
+                    vfind = this.ds_Detail_1.findRow("ITNBR", va_data[i][0]);
+
+                    this.ds_Detail_1.set_enableevent(false);
+                    this.ds_Detail_1.setColumn(vfind, "ITNBR", va_data[i][0]);
+                    this.ds_Detail_1.setColumn(vfind, "DEPOT_NO", 'ZA161');
+                    this.ds_Detail_1.setColumn(vfind, "OUT_GU", vOut_gu);
+                    this.ds_Detail_1.setColumn(vfind, "PIPRC", va_data[i][1]);
+                    this.ds_Detail_1.setColumn(vfind, "UNMSR", vs_unmsr[1]);
+                    this.ds_Detail_1.setColumn(vfind, "SUGUGB", '1');
+                    this.ds_Detail_1.setColumn(vfind, "PANGB", '1');
+                    this.ds_Detail_1.setColumn(vfind, "AMTGU", 'N');
+
+                    this.ds_Detail_1.set_enableevent(true);
+                }
+                else {
+                    var vInsrow;
+                    vInsrow = this.ds_Detail_1.rowposition;
+                    vInsrow = this.ds_Detail_1.addRow();
+                    this.ds_Detail_1.setColumn(vInsrow, "ITNBR", va_data[i][0]);
+                    this.ds_Detail_1.setColumn(vInsrow, "DEPOT_NO", 'ZA161');
+                    this.ds_Detail_1.setColumn(vInsrow, "OUT_GU", vOut_gu);
+                    this.ds_Detail_1.setColumn(vInsrow, "PIPRC", va_data[i][1]);
+                    this.ds_Detail_1.setColumn(vInsrow, "UNMSR", vs_unmsr[1]);
+                    this.ds_Detail_1.setColumn(vInsrow, "SUGUGB", '1');
+                    this.ds_Detail_1.setColumn(vInsrow, "PANGB", '1');
+                    this.ds_Detail_1.setColumn(vInsrow, "AMTGU", 'N');
+
+
+                }
+
+            }
+
+            break;
             return;
     }
 }
@@ -3749,11 +3839,16 @@ this.ff_Object_oncelldblclick = function (obj: Grid, e: nexacro.GridClickEventIn
 
                     vs_itnbr = this.ds_Detail_1.getColumn(vn_row, "ITNBR");
                     vs_kitcheck = this.ds_Detail_1.getColumn(vn_row, "KITCHECK");
+                    //** 문석    
+                    vs_setcheck = this.ds_Detail_1.getColumn(vn_row, "SETCHECK");
                     if (vs_kitcheck == "1")	//KIT 상품일 때, KIT 구성품 팝업
                     {
                         this.ff_co_popu_itemaskit_f("co_popu_itnkit", vs_itnbr);
                         //this.ds_Detail_1.setColumn(e.row,"KITCHECK", '0');
-
+                    //** 문석    
+                    } else if (vs_setcheck == "1"){
+                        this.ff_co_popu_itemaskit_f("co_popu_itnset", vs_itnbr);
+                        // this.ds_Detail_1.setColumn(e.row,"SETCHECK", '0');
                     } else {
                         return;
                     }
