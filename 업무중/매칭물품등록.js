@@ -1,3 +1,8 @@
+/***********************************************************************
+ * 01. Creation date      : 2024.07.17
+ * 02. Created by         : 최문석
+ **********************************************************************/
+
 include "lib::common_form.xjs";
 include "si_co::si_comm_function.xjs";
 
@@ -314,7 +319,7 @@ this.ff_Object_onitemchanged = function (obj: Object, e: nexacro.DSColChangeEven
             if (e.columnid == 'CINBR') {
                 if (vs_Data == '') {
                     this.ds_child.setColumn(vn_Row, "CINBR", '');
-                    this.ds_child.setColumn(vn_Row, "PRODNM", '');
+                    this.ds_child.setColumn(vn_Row, "TITLENM", '');
                     this.ds_child.setColumn(vn_Row, "ITDSC", '');
                     this.ds_child.setColumn(vn_Row, "ISPEC", '');
                     return;

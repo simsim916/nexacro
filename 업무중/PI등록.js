@@ -3510,7 +3510,7 @@ this.ff_AfterPopup = function (strId, obj) {
                     this.ds_Detail_1.setColumn(vfind, "DEPOT_NO", 'ZA161');
                     this.ds_Detail_1.setColumn(vfind, "OUT_GU", vOut_gu);
                     this.ds_Detail_1.setColumn(vfind, "PIPRC", va_data[i][1]);
-                    this.ds_Detail_1.setColumn(vfind, "UNMSR", vs_unmsr[1]);
+                    this.ds_Detail_1.setColumn(vfind, "UNMSR", vs_unmsr[1]);    // 관리단위
                     this.ds_Detail_1.setColumn(vfind, "SUGUGB", '1');
                     this.ds_Detail_1.setColumn(vfind, "PANGB", '1');
                     this.ds_Detail_1.setColumn(vfind, "AMTGU", 'N');
