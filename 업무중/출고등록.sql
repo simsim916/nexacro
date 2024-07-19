@@ -5,7 +5,7 @@
         - TRI_EXPCIH_AFTER 트리거 320줄에 의해
             EXPCID 원화금액(WAMT) 입력
             ⭐ 추가로 EXPCIH와 EXPCID의 원화금액을 맞추기 위해 EXPCID의 제일 마지막 레코드에 EXPCIH와의 차이만큼 원화금액을 조절함 (350줄)
-            IMHIST_SAL 도 동일한 방식으로 작동 (564줄, 654줄) 
+            IMHIST_SAL 도 동일한 방식으로 작동 (564줄, 654줄) s
 
 수출 면장 등록 시
     - EXPCIH 테이블
