@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<FDL version="1.5">
+  <TypeDefinition url="D:\1. ERP SOURCE\NeoHQ\neo\source\default_typedef.xml"/>
+  <Form id="auth" left="0" top="0" width="1024" height="768" titletext="New Form">
+    <Layouts>
+      <Layout width="1024" height="768"/>
+      <Layout name="Layout00" screenid="desktop" width="964" height="516"/>
+    </Layouts>
+  </Form>
+</FDL>
