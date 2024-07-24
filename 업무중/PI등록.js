@@ -2822,7 +2822,7 @@ this.ff_co_popu_itemaskit_f = function (strId, arg_parm) {
                 Argument: arg_parm
             }, { modal: true, layered: true, autosize: false, callback: "ff_AfterPopup" });
     } else if (strId == 'co_popu_itnset') {
-        var resultForm = this.gf_showPopup(strId, "Moon::co_popu_itemasset_f.xfdl", { width: 350, height: 450 },
+        var resultForm = this.gf_showPopup(strId, "co_popu::co_popu_itemasset_f.xfdl", { width: 350, height: 450 },
             {
                 OpenRetv: 'Y',   // popup open 즉시 조회  
                 MultSelect: '',   // MULTI LINE 선택 (이 아규먼트는 POPUP 프로그램에서 ARG_PARA 의 8번째 방으로 대체 한다. 
@@ -3510,7 +3510,7 @@ this.ff_AfterPopup = function (strId, obj) {
                     this.ds_Detail_1.setColumn(vfind, "DEPOT_NO", 'ZA161');
                     this.ds_Detail_1.setColumn(vfind, "OUT_GU", vOut_gu);
                     this.ds_Detail_1.setColumn(vfind, "PIPRC", va_data[i][1]);
-                    this.ds_Detail_1.setColumn(vfind, "UNMSR", vs_unmsr[1]);    // 관리단위
+                    this.ds_Detail_1.setColumn(vfind, "UNMSR", vs_unmsr[1]);
                     this.ds_Detail_1.setColumn(vfind, "SUGUGB", '1');
                     this.ds_Detail_1.setColumn(vfind, "PANGB", '1');
                     this.ds_Detail_1.setColumn(vfind, "AMTGU", 'N');
@@ -3845,8 +3845,8 @@ this.ff_Object_oncelldblclick = function (obj: Grid, e: nexacro.GridClickEventIn
                     {
                         this.ff_co_popu_itemaskit_f("co_popu_itnkit", vs_itnbr);
                         //this.ds_Detail_1.setColumn(e.row,"KITCHECK", '0');
-                    //** 문석    
-                    } else if (vs_setcheck == "1"){
+                        //** 문석    
+                    } else if (vs_setcheck == "1") {
                         this.ff_co_popu_itemaskit_f("co_popu_itnset", vs_itnbr);
                         // this.ds_Detail_1.setColumn(e.row,"SETCHECK", '0');
                     } else {

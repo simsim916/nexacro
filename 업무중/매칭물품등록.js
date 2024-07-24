@@ -129,7 +129,7 @@ this.btn_add_onclick = function () {
         v_itnbr = this.ds_item.getColumn(this.ds_item.rowposition, "ITNBR");
         row = this.ds_child.addRow();
         this.ds_child.setColumn(row, "ITNBR", v_itnbr);
-        this.gf_cursor_setting(this.grid_child, row, 'ITCLS_K');
+        this.gf_cursor_setting(this.grid_child, row, 'CINBR');
     }
 }
 // 조회 버튼
@@ -142,7 +142,6 @@ this.btn_etc2_onclick = function () {
     for (var i = childRow; i < this.ds_Temp.getRowCount() + childRow; i++) {
         this.ds_child.addRow();
         this.ds_child.setColumn(i, "ITNBR", v_itnbr);
-        this.ds_child.setColumn(i, "ITCLS_K", this.ds_Temp.getColumn(i - childRow, "ITCLS_K"));
         this.ds_child.setColumn(i, "TITLENM", this.ds_Temp.getColumn(i - childRow, "TITLENM"));
         this.ds_child.setColumn(i, "ITDSC", this.ds_Temp.getColumn(i - childRow, "ITDSC"));
         this.ds_child.setColumn(i, "CINBR", this.ds_Temp.getColumn(i - childRow, "CINBR"));
@@ -370,60 +369,44 @@ this.selectGrid = function (obj: Grid, e: nexacro.GridClickEventInfo) {
 }
 
 this.select_Child = function () {
-    var sql = " SELECT A.CINBR, B.ITDSC, B.ISPEC, A.TITLENM, A.ITCLS_K, A.ITNBR, A.CRT_USER, A.CRT_DATE "
-        + "            ,A.CRT_TIME, A.UPD_USER, A.UPD_DATE, A.UPD_TIME, A.ITCLS_K AS OLDCODE "
+    var sql = " SELECT A.CINBR, B.ITDSC, B.ISPEC, A.TITLENM, A.ITNBR, A.CRT_USER, A.CRT_DATE "
+        + "            ,A.CRT_TIME, A.UPD_USER, A.UPD_DATE, A.UPD_TIME, A.CINBR AS OLDCODE "
         + " FROM ITEMAS_SET A, ITEMAS B "
         + " WHERE A.CINBR = B.ITNBR(+) "
         + "	    AND A.ITNBR = '" + v_itnbr + "' "
-        + "	    AND A.ITCLS_K <> 0 "
-        + "	ORDER BY A.ITCLS_K "
+        + "	    AND A.ITCLS_K IS NULL "
+        + "	ORDER BY A.CINBR "
     this.gf_SelectSql_sync("ds_child:" + sql, "SELECT_CHILD", null, 0);
+    trace(this.ds_child.saveCSV());
 }
 
 this.insertCheck = function (obj) {
     // item 품번 확인
     for (var i = 0; i < this.ds_item.getRowCount(); i++) {
-        if (this.ds_item.getRowType(i) == 2) {
-            if (this.ds_item.getColumn(i, "ITNBR") == '' || this.ds_item.getColumn(i, "ITNBR") == null) {
-                this.gf_message_chk("121259", "품번 미입력");
+        if (this.ds_item.getColumn(i, "ITNBR") == '' || this.ds_item.getColumn(i, "ITNBR") == null) {
+            this.gf_message_chk("121259", "품번 미입력");
+            return false;
+        }
+        for (var j = 0; j < this.ds_item.getRowCount(); j++) {
+            if (this.ds_item.getColumn(j, "ITNBR") == this.ds_item.getColumn(i, "ITNBR") && j != i) {
+                this.gf_message_chk("100861", this.ds_item.getColumn(j, "ITNBR"));
                 return false;
             }
-            for (var j = 0; j < this.ds_item.getRowCount(); j++) {
-                if (this.ds_item.getColumn(j, "ITNBR") == this.ds_item.getColumn(i, "ITNBR") && j != i) {
-                    this.gf_message_chk("100861", this.ds_item.getColumn(j, "ITNBR"));
-                    return false;
-                }
-            }
         }
+
     }
     // child 품번 확인
     for (var i = 0; i < this.ds_child.getRowCount(); i++) {
-        if (this.ds_child.getRowType(i) == 2) {
-            if (this.ds_child.getColumn(i, "CINBR") == '' || this.ds_child.getColumn(i, "CINBR") == null) {
-                this.gf_message_chk("121259", "품번 미입력");
-                return false;
-            }
-            for (var j = 0; j < this.ds_child.getRowCount(); j++) {
-                if (this.ds_child.getColumn(j, "CINBR") == this.ds_child.getColumn(i, "CINBR") && j != i) {
-                    this.gf_message_chk("100861", this.ds_child.getColumn(j, "CINBR"));
-                    return false;
-                }
-            }
+        if (this.ds_child.getColumn(i, "CINBR") == '' || this.ds_child.getColumn(i, "CINBR") == null) {
+            this.gf_message_chk("121259", "품번 미입력");
+            return false;
         }
-    }
-    // child 코드 확인
-    for (var i = 0; i < this.ds_child.getRowCount(); i++) {
-        if (this.ds_child.getRowType(i) == 2) {
-            if (this.ds_child.getColumn(i, "ITCLS_K") == '' || this.ds_child.getColumn(i, "ITCLS_K") == null) {
-                this.gf_message_chk("121364", "코드 미입력");
+        for (var j = 0; j < this.ds_child.getRowCount(); j++) {
+            if (this.ds_child.getColumn(j, "CINBR") == this.ds_child.getColumn(i, "CINBR") && j != i) {
+                this.gf_message_chk("100861", this.ds_child.getColumn(j, "CINBR"));
                 return false;
             }
-            for (var j = 0; j < this.ds_child.getRowCount(); j++) {
-                if (this.ds_child.getColumn(j, "ITCLS_K") == this.ds_child.getColumn(i, "ITCLS_K") && j != i) {
-                    this.gf_message_chk("100958", this.ds_child.getColumn(j, "CINBR"));
-                    return false;
-                }
-            }
+
         }
     }
     return true;

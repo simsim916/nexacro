@@ -2,7 +2,7 @@
  * 01. Creation date      : 2015.08.31
  * 02. Created by         : 김성욱
  * 03. Revision history   : 
- ***********************************************************************/
+ ************************************************************************/
 
 /*************************************************************************************************************
 * 프로그램 필수 
@@ -594,6 +594,8 @@ this.btn_save_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
             var vs_Dexpno = this.ds_Detail_1.getColumn(i, "EXPNO");
             var vn_Dfobamt = this.ds_Detail_1.getColumn(i, "FOBAMT");
             var vn_Dfobamtw = this.ds_Detail_1.getColumn(i, "FOBAMTW");
+            var vn_Dwamt = this.ds_Detail_1.getColumn(i, "WAMT");//** 문석추가
+            var vn_Duamt = this.ds_Detail_1.getColumn(i, "UAMT");//** 문석추가
             //if (this.ds_Detail_1.getRowType(i) == "4")
 
             if (NXCore.isEmpty(vs_Dsaledt)) vs_Dsaledt = '';
@@ -606,6 +608,7 @@ this.btn_save_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
                     pvs_Update_sql += " update expcih "
                         + " set saledt = '" + vs_Exppmtdt + "' , expno = '" + vs_Dexpno + "' , "
                         + "     fobamt = " + vn_Dfobamt + " , fobamtw = " + vn_Dfobamtw + " "
+                        + "		, wamt = " + vn_Dwamt + " , uamt = " + vn_Duamt + " " //** 문석추가
                         + " where cino = '" + vs_Cino + "' ";
 
 
@@ -616,6 +619,7 @@ this.btn_save_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
                     pvs_Update_sql += " update expcih "
                         + " set saledt = '" + vs_Exppmtdt + "' , expno = '" + vs_Dexpno + "' , "
                         + "     fobamt = " + vn_Dfobamt + " , fobamtw = " + vn_Dfobamtw + " "
+                        + "		, wamt = " + vn_Dwamt + " , uamt = " + vn_Duamt + " " //** 문석추가
                         + " where cino = '" + vs_Cino + "' ";
                 }
 
@@ -628,6 +632,7 @@ this.btn_save_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
                         pvs_Update_sql += " update expcih "
                             + " set saledt = '" + vs_Exppmtdt + "',  "
                             + "     fobamt = " + vn_Dfobamt + " , fobamtw = " + vn_Dfobamtw + " "
+                            + "		, wamt = " + vn_Dwamt + " , uamt = " + vn_Duamt + " " //** 문석추가
                             + " where cino = '" + vs_Cino + "' ";
 
 
@@ -638,6 +643,7 @@ this.btn_save_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
                         pvs_Update_sql += " update expcih "
                             + " set saledt = '" + vs_Exppmtdt + "',  "
                             + "     fobamt = " + vn_Dfobamt + " , fobamtw = " + vn_Dfobamtw + " "
+                            + "		, wamt = " + vn_Dwamt + " , uamt = " + vn_Duamt + " " //** 문석추가
                             + " where cino = '" + vs_Cino + "' ";
 
                     }
@@ -910,7 +916,7 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
                     break;
 
 
-/**문석 */
+
                 case 'EXPPMTDT':
                     if (NXCore.isEmpty(vs_Data) || vs_Data == '') {
                         return;
@@ -922,8 +928,6 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
                     var vs_Curr = this.ds_Detail.getColumn(vn_Row, "CURR");
                     this.ff_Curr(vs_Data, vs_Curr, vn_Row);
                     break;
-
-                    
                 case 'CURR':
                     var vs_Date = this.ds_Detail.getColumn(vn_Row, "EXPPMTDT");
                     this.ff_Curr(vs_Date, vs_Data, vn_Row);
@@ -939,8 +943,6 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
                         this.ff_SelectLcno(vs_Data);
                     }
                     break;
-
-/**문석 */
                 case 'EXPAMT':
                     /*this.ds_Detail.set_enableevent(false);
                     var vs_Date = this.ds_Detail.getColumn(vn_Row, "EXPPMTDT");
@@ -973,6 +975,7 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
                     //this.ds_Detail.set_enableevent(true);
                     break;
                 case 'WAMT':
+                    /* 문석
                     var vn_Wamt = vs_Data;
                     var vn_Expamt = this.ds_Detail.getColumn(vn_Row, "EXPAMT");
                     var vn_Weight = this.ds_Detail.getColumn(vn_Row, "WEIGHT");
@@ -986,6 +989,7 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
                         var vn_Wrate = Math.round(vn_Temp, 2);
                     }
                     this.ds_Detail.setColumn(vn_Row, "WRATE", vn_Wrate);
+                    */
                     break;
                 case 'UAMT':
                     var vn_Uamt = vs_Data;
@@ -1034,6 +1038,21 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
                         this.ds_Detail_1.setColumn(vn_Row, "CINO", '');
                         return;
                     }
+                    // 문석
+                    var vn_Urate = this.ds_Detail.getColumn(0, "URATE");
+                    var vn_Expamt = this.ds_Detail_1.getColumn(vn_Row, "EXPAMT");
+                    var vn_Weight = this.ds_Detail_1.getColumn(vn_Row, "WEIGHT");
+                    if (vn_Weight == null || vn_Weight == 0) vn_Weight = 1;
+                    var vn_Uamt = Math.round(vn_Expamt * vn_Urate / vn_Weight, 2);
+                    this.ds_Detail_1.setColumn(vn_Row, "UAMT", vn_Uamt);
+                    
+                    var vn_Wrate = this.ds_Detail.getColumn(0, "WRATE");
+                    var vn_Expamt = this.ds_Detail_1.getColumn(vn_Row, "EXPAMT");
+                    var vn_Weight = this.ds_Detail_1.getColumn(vn_Row, "WEIGHT");
+                    if (vn_Weight == null || vn_Weight == 0) vn_Weight = 1;
+                    var vn_Wamt = this.gf_trunc(vn_Expamt * vn_Wrate / vn_Weight, 0);
+                    this.ds_Detail_1.setColumn(vn_Row, "WAMT", vn_Wamt);
+                    // 문석
                     break;
 
                 case 'CHK':
@@ -1045,8 +1064,10 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
                     var vn_Fobamtw = this.grd_Detail.getCellValue(-2, 9);
 
                     this.ds_Detail.setColumn(0, "EXPAMT", vn_Expamt);
+                    /* 문석
                     this.ds_Detail.setColumn(0, "WAMT", vn_Wamt);
                     this.ds_Detail.setColumn(0, "UAMT", vn_Uamt);
+                    */
                     this.ds_Detail.setColumn(0, "FOBAMT", vn_Fobamt);
                     this.ds_Detail.setColumn(0, "FOBAMTW", vn_Fobamtw);
                     break;
@@ -1580,7 +1601,6 @@ this.ff_Callback = function (sSvcID, ErrorCode, ErrorMsg) {
             // 			var vn_Row = this.ds_Detail_1.rowcount;
             break;
         case "SAVE_ALL":
-
             if (!NXCore.isEmpty(pvs_Update_sql) && pvs_Update_sql != '') {
                 this.gf_UpdateSql_sync(pvs_Update_sql, 'UPDATE_SQL', "ff_Callback_sync", 0);
             }

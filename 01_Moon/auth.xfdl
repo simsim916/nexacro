@@ -3,8 +3,166 @@
   <TypeDefinition url="D:\1. ERP SOURCE\NeoHQ\neo\source\default_typedef.xml"/>
   <Form id="auth" left="0" top="0" width="1024" height="768" titletext="New Form">
     <Layouts>
-      <Layout width="1024" height="768"/>
+      <Layout width="1024" height="768">
+        <Grid id="gd_Master" taborder="0" binddataset="ds_Master" autoenter="select" autoupdatetype="comboselect" useinputpanel="false" cellsizingtype="col" cellmovingtype="col,band" treeusecheckbox="false" treeinitstatus="collapse,all" oncellclick="gd_Master_oncellclick" oncelldblclick="gd_Master_oncelldblclick" onexpanddown="gd_Master_onexpanddown" left="0" top="210" bottom="0" titletext="프로그램 등록" width="50%">
+          <Formats>
+            <Format id="default">
+              <Columns>
+                <Column size="284"/>
+                <Column size="34"/>
+                <Column size="53"/>
+                <Column size="45"/>
+                <Column size="47"/>
+                <Column size="49"/>
+              </Columns>
+              <Rows>
+                <Row size="24" band="head"/>
+                <Row size="24" band="head"/>
+                <Row size="24"/>
+              </Rows>
+              <Band id="head">
+                <Cell rowspan="2" style="align: ;">
+                  <Cell text="메뉴명"/>
+                  <Cell row="1"/>
+                </Cell>
+                <Cell col="1" rowspan="2">
+                  <Cell text="레벨"/>
+                  <Cell row="1"/>
+                </Cell>
+                <Cell col="2" rowspan="2">
+                  <Cell text="대분류"/>
+                  <Cell row="1"/>
+                </Cell>
+                <Cell col="3" rowspan="2">
+                  <Cell text="중분류"/>
+                  <Cell row="1"/>
+                </Cell>
+                <Cell col="4" rowspan="2">
+                  <Cell text="소분류"/>
+                  <Cell row="1"/>
+                </Cell>
+                <Cell col="5"/>
+                <Cell row="1" col="5"/>
+              </Band>
+              <Band id="body">
+                <Cell displaytype="tree" edittype="tree" text="bind:SUB2_NAME" treelevel="bind:MENU_LVL"/>
+                <Cell col="1" text="bind:MENU_LVL"/>
+                <Cell col="2" text="bind:MAIN_ID"/>
+                <Cell col="3" text="bind:SUB1_ID"/>
+                <Cell col="4" text="bind:SUB2_ID"/>
+                <Cell col="5"/>
+              </Band>
+            </Format>
+          </Formats>
+        </Grid>
+        <Div id="div_head" taborder="1" top="0" height="40" style="border:1 solid #4f74acff,1 solid #ddddddff,1 solid #ddddddff,1 solid #ddddddff;" scrollbars="none" cssclass="div_WFSA_Bg" left="0" width="50%">
+          <Layouts>
+            <Layout width="518" height="262">
+              <Static id="dept" taborder="30" text="부서명" left="20" top="10" right="75%" height="20" onclick="div_head_Sta_main_id_onclick"/>
+              <Combo id="cb_dept" taborder="31" left="74" top="10" width="150" height="20"/>
+            </Layout>
+          </Layouts>
+        </Div>
+        <Grid id="Grid00" taborder="2" useinputpanel="false" left="0" top="50" width="50%" height="150" binddataset="ds_dept">
+          <Formats>
+            <Format id="default">
+              <Columns>
+                <Column size="80"/>
+                <Column size="80"/>
+                <Column size="80"/>
+              </Columns>
+              <Rows>
+                <Row size="24" band="head"/>
+                <Row size="24"/>
+              </Rows>
+              <Band id="head">
+                <Cell text="계보"/>
+                <Cell col="1" text="부서명"/>
+                <Cell col="2" text="소속인원"/>
+              </Band>
+              <Band id="body">
+                <Cell text="bind:HISTORY"/>
+                <Cell col="1" text="bind:DEPTNAME"/>
+                <Cell col="2" text="bind:MEMBER"/>
+              </Band>
+            </Format>
+          </Formats>
+        </Grid>
+        <Grid id="gd_Master00" taborder="3" binddataset="ds_Master" autoenter="select" autoupdatetype="comboselect" useinputpanel="false" cellsizingtype="col" cellmovingtype="col,band" treeusecheckbox="false" treeinitstatus="collapse,all" oncellclick="gd_Master_oncellclick" oncelldblclick="gd_Master_oncelldblclick" onexpanddown="gd_Master_onexpanddown" top="210" bottom="0" titletext="프로그램 등록" right="0" width="49.5%">
+          <Formats>
+            <Format id="default">
+              <Columns>
+                <Column size="284"/>
+                <Column size="34"/>
+                <Column size="53"/>
+                <Column size="45"/>
+                <Column size="47"/>
+              </Columns>
+              <Rows>
+                <Row size="24" band="head"/>
+                <Row size="24"/>
+              </Rows>
+              <Band id="head">
+                <Cell text="메뉴명"/>
+                <Cell col="1" text="레벨"/>
+                <Cell col="2" text="대분류"/>
+                <Cell col="3" text="중분류"/>
+                <Cell col="4" text="소분류"/>
+              </Band>
+              <Band id="body">
+                <Cell displaytype="tree" edittype="tree" text="bind:SUB2_NAME" treelevel="bind:MENU_LVL"/>
+                <Cell col="1" text="bind:MENU_LVL"/>
+                <Cell col="2" text="bind:MAIN_ID"/>
+                <Cell col="3" text="bind:SUB1_ID"/>
+                <Cell col="4" text="bind:SUB2_ID"/>
+              </Band>
+            </Format>
+          </Formats>
+        </Grid>
+        <Div id="div_head00" taborder="4" top="0" height="200" style="border:1 solid #4f74acff,1 solid #ddddddff,1 solid #ddddddff,1 solid #ddddddff;" scrollbars="none" cssclass="div_WFSA_Bg" right="0" width="49.51%">
+          <Layouts>
+            <Layout width="518" height="262">
+              <Static id="dept" taborder="32" text="부서원" onclick="div_head_Sta_main_id_onclick" left="20" top="10" right="75.1%" height="20"/>
+              <Combo id="cb_dept" taborder="33" left="74" top="10" width="150" height="20"/>
+            </Layout>
+          </Layouts>
+        </Div>
+      </Layout>
       <Layout name="Layout00" screenid="desktop" width="964" height="516"/>
     </Layouts>
+    <Bind>
+      <BindItem id="item0" compid="Div_2.Edt_main_id" propid="value" datasetid="ds_Detail" columnid="MAIN_ID"/>
+      <BindItem id="item1" compid="Div_2.Edt_sub1_id" propid="value" datasetid="ds_Detail" columnid="SUB1_ID"/>
+      <BindItem id="item2" compid="Div_2.Edt_sub2_id" propid="value" datasetid="ds_Detail" columnid="SUB2_ID"/>
+      <BindItem id="item3" compid="Div_2.Edt_sub2_name" propid="value" datasetid="ds_Detail" columnid="SUB2_NAME"/>
+      <BindItem id="item4" compid="Div_2.Edt_sub2_name_ch" propid="value" datasetid="ds_Detail" columnid="SUB2_NAME_CH"/>
+      <BindItem id="item5" compid="Div_2.Edt_sub2_name_en" propid="value" datasetid="ds_Detail" columnid="SUB2_NAME_EN"/>
+      <BindItem id="item6" compid="Div_2.Edt_sub2_name_jp" propid="value" datasetid="ds_Detail" columnid="SUB2_NAME_JP"/>
+      <BindItem id="item7" compid="Div_2.Edt_sub2_name_vn" propid="value" datasetid="ds_Detail" columnid="SUB2_NAME_VN"/>
+      <BindItem id="item8" compid="Div_2.Edt_password" propid="value" datasetid="ds_Detail" columnid="PASSWORD"/>
+      <BindItem id="item9" compid="Div_2.Edt_rmks" propid="value" datasetid="ds_Detail" columnid="RMKS"/>
+      <BindItem id="item10" compid="Div_2.Edt_window_name" propid="value" datasetid="ds_Detail" columnid="WINDOW_NAME"/>
+      <BindItem id="item11" compid="Div_2.Rad_gubun_1" propid="value" datasetid="ds_Detail" columnid="IO_GUBUN"/>
+      <BindItem id="item12" compid="Div_2.Rad_open_history" propid="value" datasetid="ds_Detail" columnid="OPEN_HISTORY"/>
+      <BindItem id="item51" compid="Div_2.Edt_page_url" propid="value" datasetid="ds_Detail" columnid="RMKS"/>
+      <BindItem id="item52" compid="Div_2.Rad_use_yn" propid="value" datasetid="ds_Detail" columnid="USE_YN"/>
+      <BindItem id="item13" compid="div_head.cb_dept" propid="innerdataset" datasetid="ds_head" columnid="DEPTNAME"/>
+      <BindItem id="item14" compid="div_head00.cb_dept" propid="innerdataset" datasetid="ds_head" columnid="DEPTNAME"/>
+    </Bind>
+    <Objects>
+      <Dataset id="ds_head">
+        <ColumnInfo>
+          <Column id="DEPTNAME" type="STRING" size="256"/>
+        </ColumnInfo>
+      </Dataset>
+      <Dataset id="ds_dept">
+        <ColumnInfo>
+          <Column id="HISTORY" type="STRING" size="256"/>
+          <Column id="DEPTNAME" type="STRING" size="256"/>
+          <Column id="MEMBER" type="STRING" size="256"/>
+        </ColumnInfo>
+      </Dataset>
+    </Objects>
+    <Script type="xscript5.0"><![CDATA[]]></Script>
   </Form>
 </FDL>
