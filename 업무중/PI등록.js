@@ -1662,8 +1662,8 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
                         break; //** 문석
                     }
 
-                    //** 문석
-                    var vs_cnt2 = this.gf_SelectSql_sync("ds_Temp: Select count(*) from itemas_set where itnbr = '" + vs_Data + "' ", null, null, 0);
+                    //** 문석 SET 상품인지 확인. POPUP
+                    var vs_cnt2 = this.gf_SelectSql_sync("ds_Temp: Select count(*) from itemas_set where itnbr = '" + vs_Data + "' ", "SELECT_ITEMASSET", "ff_Callback_sync", 0);
 
                     if (vs_cnt2[1] > 0) {
                         this.ff_co_popu_itemaskit_f("co_popu_itnset", vs_Data);
@@ -3063,6 +3063,9 @@ this.ff_AfterPopup = function (strId, obj) {
             var vs_kitcnt;
             var vs_ittyp = this.ds_Head.getColumn(0, "ARG_ITTYP");
             var vs_ittypChk = '1';
+
+            this.ds_Detail_1.addColumn("SETCHECK", "STRING"); //** 문석
+
             this.ds_Detail_1.set_enableevent(false);
 
             if (NXCore.isEmpty(this.ds_Detail.getColumn(0, "FACTORY")) || this.ds_Detail.getColumn(0, "FACTORY") == '') { ///과거 데이터는 체크 대상 X
@@ -3428,7 +3431,7 @@ this.ff_AfterPopup = function (strId, obj) {
                     break;
                 }
                 //** 문석
-                var vs_cnt2 = this.gf_SelectSql_sync("ds_Temp: Select count(*) from itemas_set where itnbr = '" + vItnbr + "' ", null, null, 0);
+                var vs_cnt2 = this.gf_SelectSql_sync("ds_Temp: Select count(*) from itemas_set where itnbr = '" + vItnbr + "' ", "SELECT_ITEMASSET", "ff_Callback_sync", 0);
 
                 if (vs_cnt2[1] > 0) {
                     this.ff_co_popu_itemaskit_f("co_popu_itnset", vItnbr);

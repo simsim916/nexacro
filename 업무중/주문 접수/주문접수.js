@@ -5258,7 +5258,6 @@ this.ff_AfterPopup = function (strId, obj) {
                         }
                     }//end if(상품 or 제품)
                 }//end if (단품 출고 제한)
-
                 if (vDept == 'ZA010' || vDept == 'ZA094') {
 
                     var vCon_spc_gbn = this.ds_package.getColumn(0, "CON_SPC_GBN");

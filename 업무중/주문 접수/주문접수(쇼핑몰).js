@@ -5091,6 +5091,7 @@ this.ff_AfterPopup = function (strId, obj) {
                 if (vi_ErrorCode < 0) {
                     return false;
                 }
+                trace(vDept);
                 if (vDept == 'ZS010' || vDept == 'ZS094') {
 
                     var vCon_spc_gbn = this.ds_package.getColumn(0, "CON_SPC_GBN");
