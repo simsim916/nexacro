@@ -17,4 +17,4 @@ gf_get_junpyo = function (obj_date, obj_jpgu, obj_length, obj_companycode) {
         vn_lenghth = obj_length;
 
     return this.gf_NumToStr(vs_return, vn_lenghth);
-}
+} 
