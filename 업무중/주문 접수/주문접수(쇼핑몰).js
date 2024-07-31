@@ -5846,6 +5846,7 @@ this.ds_list_onrowposchanged = function (obj: Dataset, e: nexacro.DSRowPosChange
 //주문등록버튼
 this.Div_head_btn_order_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {
     if (this.ds_list.rowcount < 1) return;
+    if (!this.ds_detail_Check()) return; // mm : 품목별 사용 정보 관리에서 주문 가능 여부 확인
 
     for (var i = 0; i <= this.ds_list.rowcount - 1; i++) {
 
@@ -5882,6 +5883,30 @@ this.Div_head_btn_order_onclick = function (obj: Button, e: nexacro.ClickEventIn
 
     this.btn_query_onclick();
 
+}
+
+// mm 품목별 사용 정보 관리에서 주문 가능 여부 확인
+this.ds_detail_Check = function () {
+    var str = '';
+    var cnt = 0;
+    var result = true;
+    for (var i = 0; i < this.ds_detail.rowcount; i++) {
+        var vSql = "SELECT A.NEWITS FROM ITEMAS_MRP A "
+            + " WHERE A.ITNBR = '" + this.ds_detail.getColumn(i, "ITNBR") + "' "
+
+        var vRtn = this.gf_SelectSql_sync("ds_temp:" + vSql, "SELECT_reffpf_5A", "ff_Callback_sync", 0);
+
+        if (vRtn[1] == 'N') {
+            if (cnt != 0)
+                str += ", "
+            str += this.ds_detail.getColumn(i, "ITNBR");
+            cnt++;
+            result = false;
+            continue;
+        }
+    }
+    alert("주문 불가한 품목이 있습니다. [" + str + "]");
+    return result;
 }
 
 this.Div_detail_btn_wait_detail_delete_onclick = function (obj: Button, e: nexacro.ClickEventInfo) {

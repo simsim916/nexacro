@@ -1,5 +1,5 @@
 gf_showPopup = function (
-    strFormId,      // "PIC_UPLOAD"              폼 ID   
+    strFormId,      // "PIC_UPLOAD"              폼 ID    
     strUrl,         // "co_syst::co_syst_fileupload_download_popup.xfdl"
     positions,      //  {width:592, height:217}  팝업창의 넓이 높이
     arguments,      //  {	A: "hr/perimage",  

@@ -5167,6 +5167,7 @@ this.ff_AfterPopup = function (strId, obj) {
             var vDept = this.ds_master.getColumn(0, "DEPOT_NO");
             var vStkchk = this.gf_Getsyscnfg('S', 17, 1);
             var vi_rbtn_init = 0;
+
             for (var i = 0; i < va_Data.length; i++) {
                 var nFindRow = vDw.findRow("ITNBR", va_Data[i][2]);
                 if (nFindRow >= 0 && nFindRow != vRow) {
@@ -5174,7 +5175,6 @@ this.ff_AfterPopup = function (strId, obj) {
                         continue;
                     }
                 }
-                trace(va_Data[i][10]);
                 if (va_Data[i][10] != '0') {
                     alert(va_Data[i][2] + " 사용할 수 없는 품목입니다.");
                     continue;
