@@ -1041,14 +1041,14 @@ this.ff_Object_onitemchanged = function (obj: Object, e) {
                     // 문석
                     var vn_Urate = this.ds_Detail.getColumn(0, "URATE");
                     var vn_Expamt = this.ds_Detail_1.getColumn(vn_Row, "EXPAMT");
-                    var vn_Weight = this.ds_Detail_1.getColumn(vn_Row, "WEIGHT");
+                    var vn_Weight = this.ds_Detail.getColumn(vn_Row, "WEIGHT");
                     if (vn_Weight == null || vn_Weight == 0) vn_Weight = 1;
                     var vn_Uamt = Math.round(vn_Expamt * vn_Urate / vn_Weight, 2);
                     this.ds_Detail_1.setColumn(vn_Row, "UAMT", vn_Uamt);
                     
                     var vn_Wrate = this.ds_Detail.getColumn(0, "WRATE");
                     var vn_Expamt = this.ds_Detail_1.getColumn(vn_Row, "EXPAMT");
-                    var vn_Weight = this.ds_Detail_1.getColumn(vn_Row, "WEIGHT");
+                    var vn_Weight = this.ds_Detail.getColumn(vn_Row, "WEIGHT");
                     if (vn_Weight == null || vn_Weight == 0) vn_Weight = 1;
                     var vn_Wamt = this.gf_trunc(vn_Expamt * vn_Wrate / vn_Weight, 0);
                     this.ds_Detail_1.setColumn(vn_Row, "WAMT", vn_Wamt);
