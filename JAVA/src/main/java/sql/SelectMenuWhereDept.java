@@ -1,2 +1,9 @@
-package sql;public class 부서명으로메뉴조회 {
+package sql;
+
+public class SelectMenuWhereDept {
+    public String getSQL (String dept) {
+        String SQL = "";
+
+        return SQL;
+    }
 }

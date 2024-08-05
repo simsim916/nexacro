@@ -1,0 +1,50 @@
+fa_vocu_automaip_e.xfdl (회계 > 자동전표 > 자동전표 처리 > 매입전표 처리)
+테스트자료 계산서 일자 2023.08.14 ~ 2023.08.15 조회
+    - ERPACC.fun_create_autoslip_b SQL함수 245행 Loop 에서 1회전 후 'ORA-01722: 수치가 부적합합니다' 에러 발생
+226행) 
+    case "SAVE_MASTER" :
+		//자료 저장후 처리함수 실행 
+		var param = this.fvs_UpmuGbn + "|" + this.fvs_saupcode + "|" + this.vs_ChkSeq + "|"+ this.gf_today() + "|" +  application.gvs_empid + "|" + application.gvs_deptid+ "|" +application.gvs_deptid;
+        trace(param); // B|10|6826|20240802|N1002013|P15623|P15623
+		var ReturnValue = this.gf_Function_sync ("fun_create_autoslip",param, "FUNCTION","ff_Callback_sync",1);
+		trace(ReturnValue); // 0
+		if( ReturnValue == "ERROR" || ReturnValue == "AAAA")
+		{
+			this.gf_message_chk("102784","매입자동 전표"); 		//전표 생성을 실패하였습니다.;
+			return;
+		}
+		else
+
+SQL_DEVELOPER
+    DECLARE
+       result INTEGER;
+    BEGIN
+        DBMS_OUTPUT.PUT_LINE('Start');
+        result:= ERPACC.fun_create_autoslip('B', '10', '6826', '20240802', 'N1002013', 'P15623', 'P15623');
+        DBMS_OUTPUT.PUT_LINE('Result: ' || result);
+    END;
+
+sm_sale_magam_cnf_e.xfdl (물류 > 영업관리 > 매출 관리 > 매출 마감 및 확정(세금계산서))
+테스트자료 마감기한 2023.08.01 ~ 2023.08.31 거래처코드 10081 
+    - ERPMAN.SP_MUL_ACC_INF SQL 함수에서 return값 INTEGER
+343행)
+    if (application.confirm(vSaledt + "일자 세금계산서에 대한 회계전표를 발행하시겠습니까?") == false) return;
+
+    var vArgs = "I" + "|" + "S1" + "|" +
+        vCheckno + "|" + " " + "|" + " " + "|" + " " + "|" + 0 + "|" + 0 + "|" +
+        vSaupj + "|" +
+        vEmpno + "|" + vSaledt;
+
+
+    var nRtn = this.gf_Procedure_sync("SP_MUL_ACC_INF", vArgs, "PROCEDURE", "ff_Callback_sync", 0);
+    trace(nRtn); // 1
+    trace(nRtn[0]); // undefiened
+    trace(nRtn[1]); // undefiened
+    trace(nRtn[2]); // undefiened
+    for (var i = 0; i < nRtn.length; i++) {
+        trace(i + " : " + nRtn[i]);
+    }
+    if (nRtn[0] == 0) {
+        alert(" 전표가 발행되지 않았습니다");
+        return;
+    }
