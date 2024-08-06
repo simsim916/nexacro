@@ -1,0 +1,264 @@
+'bi_cost::bi_cost_danga_med_e.xfdl'
+, 'bi_cost::bi_cost_danga_med_q.xfdl'
+, 'bi_cost::bi_cost_danga_vnd_e.xfdl'
+, 'bi_cost::bi_cost_med_qty_danga_e.xfdl'
+, 'bi_cost::bi_cust_limit_e.xfdl'
+, 'bi_cust::bi_cust_vndmst_q1.xfdl'
+, 'bi_cust::bi_cust_vndmst_rank_2year_q.xfdl'
+, 'bi_cust::bi_cust_vndmst_rank_2year_q.xfdl'
+, 'bi_cust::bi_cust_vndsalesman_e.xfdl'
+, 'bi_item::bi_item_itemas_lcs_e.xfdl'
+, 'bill_sale::bill_sale_neopload_e.xfdl'
+, 'co_popu::co_popu_pack_crt_f.xfdl'
+, 'co_popu::co_popu_saleh_can_f.xfdl'
+, 'co_popu::co_popu_vndsale_f.xfdl'
+, 'co_syst::co_syst_jsconv.xfdl'
+, 'co_syst::co_syst_menuuser_find_e.xfdl'
+, 'co_syst::co_syst_user_jimun2_e.xfdl'
+, 'co_syst::co_syst_user_jimun_e.xfdl'
+, 'em_nego::em_nego_nego_q.xfdl'
+, 'em_orde::em_orde_buyer_jan_confirm_e.xfdl'
+, 'em_orde::em_orde_buyer_jan_e.xfdl'
+, 'em_orde::em_orde_exportpermit_q.xfdl'
+, 'em_orde::em_orde_planorg_e.xfdl'
+, 'em_orde::em_orde_status_q.xfdl'
+, 'em_orde::em_orde_status_q3.xfdl'
+, 'em_ship::em_ship_commercialresult_q.xfdl'
+, 'em_ship::em_ship_vndmstsale_q.xfdl'
+, 'ic_insp::ic_insp_closebook_confirm_e.xfdl'
+, 'ic_insp::ic_insp_closebook_e.xfdl'
+, 'ic_insp::ic_insp_closepdt_e.xfdl'
+, 'ic_insp::ic_insp_closepdt_e2.xfdl'
+, 'ic_iomn::ic_iomn_bar_inq_q.xfdl'
+, 'ic_iomn::ic_iomn_box_mst_e.xfdl'
+, 'ic_iomn::ic_iomn_box_mst_neo_e.xfdl'
+, 'ic_iomn::ic_iomn_box_number_e.xfdl'
+, 'ic_iomn::ic_iomn_jegoing_q2.xfdl'
+, 'ic_iomn::ic_iomn_lot_mst_e.xfdl'
+, 'ic_pick::ic_pick_list_michul_con_q.xfdl'
+, 'ic_pick::ic_pick_list_michul_q.xfdl'
+, 'ic_rege::ic_rege_lothist_mod_e.xfdl'
+, 'ic_rege::ic_rege_regenoss_result_e.xfdl'
+, 'ic_rege::ic_rege_udi_result_e.xfdl'
+, 'ic_send::ic_send_delivery_ne01_popu_f.xfdl'
+, 'ic_send::ic_send_delivery_ne03_e.xfdl'
+, 'ic_send::ic_send_goodsmove_cnf_e.xfdl'
+, 'ic_send::ic_send_goodsmove_cnf_e2.xfdl'
+, 'ic_send::ic_send_goodsmove_neo_e.xfdl'
+, 'ic_send::ic_send_return_cnf_e.xfdl'
+, 'ic_send::ic_send_return_fail_cnf_e.xfdl'
+, 'ic_send::ic_send_return_neo_e.xfdl'
+, 'ic_send::ic_send_return_neo_e2.xfdl'
+, 'ic_send::ic_send_rework_e2.xfdl'
+, 'ic_send::ic_send_rtnmove_e.xfdl'
+, 'ic_send::ic_send_rtnmove_neo_e.xfdl'
+, 'ic_send::ic_send_rtnmove_neo_e2.xfdl'
+, 'ic_send::ic_send_rtnmove_neo_e3.xfdl'
+, 'ic_send::ic_send_scrcovreq_e_01.xfdl'
+, 'ic_send::ic_send_scrcovreq_e_02.xfdl'
+, 'ic_trans::ic_trans_inv_excel_ilyang_neo02_q.xfdl'
+, 'si_anal::si_anal_cust_total_q.xfdl'
+, 'si_pkg::si_pkg_estimate_new_e.xfdl'
+, 'si_pkg::si_pkg_estimate_partition_e.xfdl'
+, 'si_pkg::si_pkg_estimate_rstd_e.xfdl'
+, 'si_pkg::si_pkg_item_gubun_e.xfdl'
+, 'si_pkg::si_pkg_price_jogun_e.xfdl'
+, 'si_send::si_send_chulha_neo_eb.xfdl'
+, 'si_send::si_send_chulha_neo_mdc_e.xfdl'
+, 'si_send::si_send_gita_sale_e.xfdl'
+, 'si_send::si_send_order_neo_e.xfdl'
+, 'si_send::si_send_order_neo_e3.xfdl'
+, 'si_send::si_send_order_neo_e_excel.xfdl'
+, 'si_send::si_send_order_neo_e_seil.xfdl'
+, 'si_send::si_send_order_neo_sm_e.xfdl'
+, 'si_send::si_send_request_neo_e.xfdl'
+, 'si_send::si_send_return_new_neo_e.xfdl'
+, 'si_send::si_send_return_new_neo_e4.xfdl'
+, 'si_send::si_send_rtnmove_e.xfdl'
+, 'sm_anal::sm_anal_collection_neo_e.xfdl'
+, 'sm_anal::sm_anal_collection_neo_e01_e.xfdl'
+, 'sm_anal::sm_anal_collection_neo_e01_e.xfdl'
+, 'sm_anal::sm_anal_collection_neo_e02.xfdl'
+, 'sm_anal::sm_anal_cust_mon_q.xfdl'
+, 'sm_anal::sm_anal_cust_total_cvcodinfo_q.xfdl'
+, 'sm_anal::sm_anal_cust_total_cvcod_q.xfdl'
+, 'sm_anal::sm_anal_cust_total_q.xfdl'
+, 'sm_anal::sm_anal_cust_total_sale_q.xfdl'
+, 'sm_anal::sm_anal_dapum_q.xfdl'
+, 'sm_anal::sm_anal_ediemp_q.xfdl'
+, 'sm_anal::sm_anal_secess_cust_q.xfdl'
+, 'sm_deli::sm_deli_promstk_e.xfdl'
+, 'sm_deli::sm_deli_promstk_e.xfdl'
+, 'sm_ictv::sm_ictv_achman_merge_q_01.xfdl'
+, 'sm_ictv::sm_ictv_achman_q_01.xfdl'
+, 'sm_ictv::sm_ictv_achorg_crosing_q_01.xfdl'
+, 'sm_ictv::sm_ictv_achorg_merge_q_01.xfdl'
+, 'sm_ictv::sm_ictv_achorg_q_01.xfdl'
+, 'sm_ictv::sm_ictv_planman_e.xfdl'
+, 'sm_ictv::sm_ictv_planorg_e.xfdl'
+, 'sm_pkg::sm_pkg_estimate_adj_e.xfdl'
+, 'sm_pkg::sm_pkg_estimate_cnf_e.xfdl'
+, 'sm_pkg::sm_pkg_estimate_neo_e.xfdl'
+, 'sm_pkg::sm_pkg_estimate_q.xfdl'
+, 'sm_pkg::sm_pkg_estimate_q.xfdl'
+, 'sm_pkg::sm_pkg_estimate_q1.xfdl'
+, 'sm_pkg::sm_pkg_estimate_q2.xfdl'
+, 'sm_pkg::sm_pkg_estimate_q4.xfdl'
+, 'sm_pkg::sm_pkg_estimate_q5.xfdl'
+, 'sm_pkg::sm_pkg_hando_e.xfdl'
+, 'sm_sale::sm_sale_crosschk2_q.xfdl'
+, 'sm_sale::sm_sale_crosschk_q.xfdl'
+, 'sm_sale::sm_sale_magam_cnf_e.xfdl'
+, 'sm_sale::sm_sale_outgbn_q.xfdl'
+, 'sm_sale::sm_sale_saleh_q.xfdl'
+, 'sm_sale::sm_sale_sale_check_q.xfdl'
+, 'sm_send::sm_send_banpum_q.xfdl'
+, 'sm_send::sm_send_chaamt_neo_e.xfdl'
+, 'sm_send::sm_send_danhando_e.xfdl'
+, 'sm_send::sm_send_gamex_e.xfdl'
+, 'sm_send::sm_send_giftcard_e.xfdl'
+, 'sm_send::sm_send_hosjego_q.xfdl'
+, 'sm_send::sm_send_ioprt_neo01_q.xfdl'
+, 'sm_send::sm_send_jojung_e.xfdl'
+, 'sm_send::sm_send_order_chulha2_q.xfdl'
+, 'sm_send::sm_send_order_chulha_q.xfdl'
+, 'sm_send::sm_send_order_chulha_q2.xfdl'
+, 'sm_send::sm_send_order_chulot2_q.xfdl'
+, 'sm_send::sm_send_order_chulot_q.xfdl'
+, 'sm_send::sm_send_rtnmove_e.xfdl'
+, 'sm_send::sm_send_rtnpop_q1_f.xfdl' 
+, 'sm_send::sm_send_sample_chul_q.xfdl'
+, 'sm_stat::sm_stat_pivot_cond_saleout3.xfdl'
+
+
+bi_cost_danga_med_e.xfdl
+bi_cost_danga_med_q.xfdl
+bi_cost_danga_vnd_e.xfdl
+bi_cost_med_qty_danga_e.xfdl
+bi_cust_limit_e.xfdl
+bi_cust_vndmst_q1.xfdl
+bi_cust_vndmst_rank_2year_q.xfdl
+bi_cust_vndmst_rank_2year_q.xfdl
+bi_cust_vndsalesman_e.xfdl
+bi_item_itemas_lcs_e.xfdl
+bill_sale_neopload_e.xfdl
+co_popu_pack_crt_f.xfdl
+co_popu_saleh_can_f.xfdl
+co_popu_vndsale_f.xfdl
+co_syst_jsconv.xfdl
+co_syst_menuuser_find_e.xfdl
+co_syst_user_jimun2_e.xfdl
+co_syst_user_jimun_e.xfdl
+em_nego_nego_q.xfdl
+em_orde_buyer_jan_confirm_e.xfdl
+em_orde_buyer_jan_e.xfdl
+em_orde_exportpermit_q.xfdl
+em_orde_planorg_e.xfdl
+em_orde_status_q.xfdl
+em_orde_status_q3.xfdl
+em_ship_commercialresult_q.xfdl
+em_ship_vndmstsale_q.xfdl
+ic_insp_closebook_confirm_e.xfdl
+ic_insp_closebook_e.xfdl
+ic_insp_closepdt_e.xfdl
+ic_insp_closepdt_e2.xfdl
+ic_iomn_bar_inq_q.xfdl
+ic_iomn_box_mst_e.xfdl
+ic_iomn_box_mst_neo_e.xfdl
+ic_iomn_box_number_e.xfdl
+ic_iomn_jegoing_q2.xfdl
+ic_iomn_lot_mst_e.xfdl
+ic_pick_list_michul_con_q.xfdl
+ic_pick_list_michul_q.xfdl
+ic_rege_lothist_mod_e.xfdl
+ic_rege_regenoss_result_e.xfdl
+ic_rege_udi_result_e.xfdl
+ic_send_delivery_ne01_popu_f.xfdl
+ic_send_delivery_ne03_e.xfdl
+ic_send_goodsmove_cnf_e.xfdl
+ic_send_goodsmove_cnf_e2.xfdl
+ic_send_goodsmove_neo_e.xfdl
+ic_send_return_cnf_e.xfdl
+ic_send_return_fail_cnf_e.xfdl
+ic_send_return_neo_e.xfdl
+ic_send_return_neo_e2.xfdl
+ic_send_rework_e2.xfdl
+ic_send_rtnmove_e.xfdl
+ic_send_rtnmove_neo_e.xfdl
+ic_send_rtnmove_neo_e2.xfdl
+ic_send_rtnmove_neo_e3.xfdl
+ic_send_scrcovreq_e_01.xfdl
+ic_send_scrcovreq_e_02.xfdl
+ic_trans_inv_excel_ilyang_neo02_q.xfdl
+si_anal_cust_total_q.xfdl
+si_pkg_estimate_new_e.xfdl
+si_pkg_estimate_partition_e.xfdl
+si_pkg_estimate_rstd_e.xfdl
+si_pkg_item_gubun_e.xfdl
+si_pkg_price_jogun_e.xfdl
+si_send_chulha_neo_eb.xfdl
+si_send_chulha_neo_mdc_e.xfdl
+si_send_gita_sale_e.xfdl
+si_send_order_neo_e.xfdl
+si_send_order_neo_e3.xfdl
+si_send_order_neo_e_excel.xfdl
+si_send_order_neo_e_seil.xfdl
+si_send_order_neo_sm_e.xfdl
+si_send_request_neo_e.xfdl
+si_send_return_new_neo_e.xfdl
+si_send_return_new_neo_e4.xfdl
+si_send_rtnmove_e.xfdl
+sm_anal_collection_neo_e.xfdl
+sm_anal_collection_neo_e01_e.xfdl
+sm_anal_collection_neo_e01_e.xfdl
+sm_anal_collection_neo_e02.xfdl
+sm_anal_cust_mon_q.xfdl
+sm_anal_cust_total_cvcodinfo_q.xfdl
+sm_anal_cust_total_cvcod_q.xfdl
+sm_anal_cust_total_q.xfdl
+sm_anal_cust_total_sale_q.xfdl
+sm_anal_dapum_q.xfdl
+sm_anal_ediemp_q.xfdl
+sm_anal_secess_cust_q.xfdl
+sm_deli_promstk_e.xfdl
+sm_deli_promstk_e.xfdl
+sm_ictv_achman_merge_q_01.xfdl
+sm_ictv_achman_q_01.xfdl
+sm_ictv_achorg_crosing_q_01.xfdl
+sm_ictv_achorg_merge_q_01.xfdl
+sm_ictv_achorg_q_01.xfdl
+sm_ictv_planman_e.xfdl
+sm_ictv_planorg_e.xfdl
+sm_pkg_estimate_adj_e.xfdl
+sm_pkg_estimate_cnf_e.xfdl  
+sm_pkg_estimate_neo_e.xfdl 
+sm_pkg_estimate_q.xfdl
+sm_pkg_estimate_q.xfdl
+sm_pkg_estimate_q1.xfdl	
+sm_pkg_estimate_q2.xfdl
+sm_pkg_estimate_q4.xfdl	
+sm_pkg_estimate_q5.xfdl	
+sm_pkg_hando_e.xfdl
+sm_sale_crosschk2_q.xfdl   
+sm_sale_crosschk_q.xfdl   
+sm_sale_magam_cnf_e.xfdl    
+sm_sale_outgbn_q.xfdl   
+sm_sale_saleh_q.xfdl   
+sm_sale_sale_check_q.xfdl   
+sm_send_banpum_q.xfdl   
+sm_send_chaamt_neo_e.xfdl  
+sm_send_danhando_e.xfdl  
+sm_send_gamex_e.xfdl   
+sm_send_giftcard_e.xfdl	
+sm_send_hosjego_q.xfdl    
+sm_send_ioprt_neo01_q.xfdl       
+sm_send_jojung_e.xfdl    
+sm_send_order_chulha2_q.xfdl   
+sm_send_order_chulha_q.xfdl  
+sm_send_order_chulha_q2.xfdl   
+sm_send_order_chulot2_q.xfdl 
+sm_send_order_chulot_q.xfdl    
+sm_send_rtnmove_e.xfdl
+sm_send_rtnpop_q1_f.xfdl 
+sm_send_sample_chul_q.xfdl
+sm_stat_pivot_cond_saleout3.xfdl

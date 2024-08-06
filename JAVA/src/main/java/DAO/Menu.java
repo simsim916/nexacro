@@ -12,6 +12,7 @@ public class Menu {
     public String IO_GUBUN;
     public String SEQ_NO;
     public String MENU_LVL;
+    public String USEDATE;
     public Map<String, String> Emp;
 
     public List<String> getColumn(){

@@ -137,6 +137,10 @@ public class OracleConnection {
             sql += "	            WHEN '" + a.EMPNO + "' THEN 'O'     ";
             sql += "	            ELSE NULL     ";
             sql += "	        END) AS "+ a.EMPNO +"     ";
+            sql += "	        ,MAX(CASE      ";
+            sql += "	            WHEN A.L_USERID = '" + a.EMPNO + "' THEN PH1.USEDATE     ";
+            sql += "	            ELSE NULL     ";
+            sql += "	        END) AS "+ a.EMPNO +"_DATE     ";
         }
             sql += "	    FROM (     ";
             sql += "	        SELECT     ";
@@ -160,6 +164,9 @@ public class OracleConnection {
             sql += "	    ) S     ";
             sql += "	        LEFT JOIN SUB2_USER_T A ON S.SUB2_NAME = A.SUB2_NAME AND A.L_USERID IN ('" + emps + "')     ";
             sql += "	        LEFT JOIN P1_MASTER B ON A.L_USERID = B.EMPNO AND B.RETIREDATE IS NULL    ";
+            sql += "	        LEFT JOIN (    ";
+            sql += "	                SELECT MAX(SDATE) AS USEDATE, SUB2_NAME, L_USERID FROM PGM_HISTORY WHERE L_USERID IN ('"+ emps +"') GROUP BY SUB2_NAME, L_USERID HAVING MAX(SDATE) >= '20240101'        ";
+            sql += "	                  ) PH1 ON A.L_USERID = PH1.L_USERID AND A.SUB2_NAME = PH1.SUB2_NAME   ";
             sql += "	    GROUP BY     ";
             sql += "	        S.MAIN_ID     ";
             sql += "	        ,S.SUB1_ID     ";
@@ -188,7 +195,7 @@ public class OracleConnection {
                 dao.MENU_LVL=resultSet.getString("MENU_LVL");
                 dao.Emp = new HashMap<String, String>();
                 for(Emp a : Emp){
-                    dao.Emp.put(a.EMPNO, resultSet.getString(a.EMPNO));
+                    dao.Emp.put(a.EMPNO, resultSet.getString(a.EMPNO) != null ? resultSet.getString(a.EMPNO)+resultSet.getString(a.EMPNO+"_DATE") : null);
                 }
                 list.add(dao);
             }
@@ -284,7 +291,7 @@ public class OracleConnection {
 
             String sql = "";
             sql += "	    SELECT     ";
-            sql += "	        LISTAGG(ETC, '\n') WITHIN GROUP (ORDER BY ETC) AS ETC_LIST  ";
+            sql += "	        LISTAGG(ETC, ',') WITHIN GROUP (ORDER BY ETC) AS ETC_LIST  ";
             sql += "	    FROM (      ";
             sql += "	    SELECT     ";
             sql += "	        B.RFNA1 AS ETC     ";

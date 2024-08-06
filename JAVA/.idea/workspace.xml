@@ -5,17 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="47a7f6a7-66f1-40fc-9b4b-9d1de26664da" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/DAO/Dept.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/DAO/Emp.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/DAO/Menu.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/excel/AuthWriter.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/excel/ExcelUpdate.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/excel/OracleConnection.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/excel/StringMaker.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/sql/SelectMenuWhereDept.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/Main.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/DAO/Dept.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/DAO/Dept.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/DAO/Menu.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/DAO/Menu.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/excel/AuthWriter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/excel/AuthWriter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/excel/OracleConnection.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/excel/OracleConnection.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,29 +38,38 @@
     <option name="showLibraryContents" value="true" />
     <option name="showScratchesAndConsoles" value="false" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Application.AuthWriter.executor&quot;: &quot;Run&quot;,
-    &quot;Application.ExcelReader.executor&quot;: &quot;Run&quot;,
-    &quot;Application.ExcelUpdate2.executor&quot;: &quot;Run&quot;,
-    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/NBL23040/Desktop/작업중/04_권한/ojdbc11.jar&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;onboarding.tips.debug.path&quot;: &quot;C:/Users/NBL23040/Desktop/Moon/nexacro/JAVA/src/main/java/org/example/Main.java&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.AuthWriter.executor": "Run",
+    "Application.ExcelReader.executor": "Run",
+    "Application.ExcelUpdate2.executor": "Run",
+    "Application.Main.executor": "Run",
+    "Downloaded.Files.Path.Enabled": "false",
+    "Repository.Attach.Annotations": "false",
+    "Repository.Attach.JavaDocs": "false",
+    "Repository.Attach.Sources": "false",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/NBL23040/Desktop/작업중/04_권한/ojdbc11.jar",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "onboarding.tips.debug.path": "C:/Users/NBL23040/Desktop/Moon/nexacro/JAVA/src/main/java/org/example/Main.java",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "vue.rearranger.settings.migration": "true"
+  },
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "oracle"
+    ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\NBL23040\Desktop\Moon\nexacro\JAVA\src\main\java\excel" />
@@ -95,7 +98,7 @@
       <workItem from="1721698582960" duration="3736000" />
       <workItem from="1722583601003" duration="5266000" />
       <workItem from="1722813221534" duration="12507000" />
-      <workItem from="1722832756553" duration="3308000" />
+      <workItem from="1722832756553" duration="18224000" />
     </task>
     <servers />
   </component>

@@ -12,11 +12,11 @@ public class Dept {
 
     public List<String> getColumn(){
         List<String> column = new ArrayList<String>();
-        column.add("level");
-        column.add("deptname");
-        column.add("history");
-        column.add("deptcode");
-        column.add("member");
+        column.add("부서레벨");
+        column.add("조직도");
+        column.add("부서명");
+        column.add("부서코드");
+        column.add("부서인원");
 
         return column;
     }
