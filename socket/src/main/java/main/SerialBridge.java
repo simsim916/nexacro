@@ -1,2 +1,5 @@
-package main;public class SerialBridge {
+package main;
+
+public class SerialBridge {
+
 }
